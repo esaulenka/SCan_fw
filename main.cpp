@@ -3,9 +3,10 @@
 #include "Debug.h"
 #include "timer.h"
 #include "cdcacm.h"
+#include "canhacker.h"
 #include <cstdio>
 
-
+CanHacker canHack;
 
 extern "C" int main();
 int main()
@@ -15,7 +16,7 @@ int main()
 	Timer::init();
 	Usb::init();
 
-	Timer sendTmr;
+//	Timer sendTmr;
 	bool connectPrev = false;
 
 
@@ -33,13 +34,16 @@ int main()
 		}
 
 
-		if (sendTmr.checkTimeout(1000))
-		{
-			sendTmr.restart();
-			char buf[32];
-			int len = sprintf(buf, "%d\n", (int)Timer::counter());
-			Usb::send(buf, len);
-		}
+//		if (sendTmr.checkTimeout(1000))
+//		{
+//			sendTmr.restart();
+//			char buf[32];
+//			int len = sprintf(buf, "%d\n", (int)Timer::counter());
+//			Usb::send(buf, len);
+//		}
+
+		canHack.processCmd();
+
 //		auto checkPort = [](uint16_t &oldVal, uint16_t newVal, const char* label) {
 //			if (oldVal != newVal) {
 //				DBG(0, "%s: %X -> %X\n", label, oldVal, newVal);

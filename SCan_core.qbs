@@ -13,6 +13,8 @@ CppApplication {
 
 
     files: [
+        "canhacker.cpp",
+        "canhacker.h",
         "system/startup.c",
         "system/sysinit.cpp",
         "system/vectable.c",
@@ -27,6 +29,7 @@ CppApplication {
         "USB/cdcacm.cpp",
         "main.cpp",
         "timer.cpp",
+        "Pins.h",
     ]
 
 
