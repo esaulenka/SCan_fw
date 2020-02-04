@@ -4,6 +4,7 @@
 #include "timer.h"
 #include "cdcacm.h"
 #include "canhacker.h"
+#include "stm32.h"
 #include <cstdio>
 
 CanHacker canHack;
@@ -11,7 +12,7 @@ CanHacker canHack;
 extern "C" int main();
 int main()
 {
-	DBG(0, "\n\nCore started!\n");
+	DBG("\n\nCore started!\n");
 
 	Timer::init();
 	Usb::init();
@@ -28,9 +29,9 @@ int main()
 		{
 			connectPrev = connect;
 			if (connect)
-				SEGGER_RTT_printf(0, "connected\n");
+				DBG("connected\n");
 			else
-				SEGGER_RTT_printf(0, "disconnect\n");
+				DBG("disconnect\n");
 		}
 
 
@@ -44,18 +45,18 @@ int main()
 
 		canHack.processCmd();
 
-//		auto checkPort = [](uint16_t &oldVal, uint16_t newVal, const char* label) {
-//			if (oldVal != newVal) {
-//				DBG(0, "%s: %X -> %X\n", label, oldVal, newVal);
-//				oldVal = newVal;
-//			}
-//		};
-//		static uint16_t port[4] = {};
-//		const uint16_t maskA = (1<<13) | (1<<14) | (1<<11) | (1<<12);	// USB, SWD
-//		checkPort(port[0], GPIOA->IDR & (~maskA), "portA");
-//		checkPort(port[1], GPIOB->IDR, "portB");
-//		checkPort(port[2], GPIOC->IDR, "portC");
-//		checkPort(port[3], GPIOD->IDR, "portD");
+		auto checkPort = [](uint16_t &oldVal, uint16_t newVal, const char* label) {
+			if (oldVal != newVal) {
+				DBG("%s: %X -> %X\n", label, oldVal, newVal);
+				oldVal = newVal;
+			}
+		};
+		static uint16_t port[4] = {};
+		const uint16_t maskA = (1<<13) | (1<<14) | (1<<11) | (1<<12);	// USB, SWD
+		checkPort(port[0], GPIOA->IDR & (~maskA), "portA");
+		checkPort(port[1], GPIOB->IDR, "portB");
+		checkPort(port[2], GPIOC->IDR, "portC");
+		checkPort(port[3], GPIOD->IDR, "portD");
 
 	}
 }

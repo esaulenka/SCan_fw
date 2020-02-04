@@ -305,7 +305,7 @@ void dwc_poll(usbd_device *usbd_dev)
 		case 1U<<0: name="CMOD"; break;
 		}
 
-		DBG(0, "USB: %08X %X %s\n", intsts, newflag, name);
+		DBG("USB: %08X %X %s\n", intsts, newflag, name);
 		intsts_prev = intsts;
 	}
 #endif
