@@ -73,6 +73,14 @@ struct IOStruct
 	volatile T* operator->() { return (volatile T*)addr; }
 };
 
+
+// return highest bit number
+constexpr int8_t mask2bit (uint32_t val)
+{
+	return (val > 1) ? ( mask2bit (val/2) + 1 ) : 0;
+}
+
+
 /**
  * Peripheral bit - bit-band accessed bit.
  * @param addr  memory/peripheral address

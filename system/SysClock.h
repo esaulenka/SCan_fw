@@ -19,7 +19,7 @@
 #define CLOCK_AHB			(CLOCK_SYSCLK/2)	// должно быть не меньше 14.2 МГц, см. errata
 
 // частота шины APB1 (USART2,3,4,5, SPI2,3, CAN, TIM2,3,4,5,6,7, DAC)
-#define CLOCK_APB1			(CLOCK_AHB/4)
+#define CLOCK_APB1			(CLOCK_AHB/1)
 
 
 // частота шины APB2 (GPIO, USART1, TIM1, SPI1, ADC)

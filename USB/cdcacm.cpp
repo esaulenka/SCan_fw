@@ -5,6 +5,7 @@
 #include "Pins.h"
 #include "stm32.h"
 #include <algorithm>
+#include <cstring>
 
 
 static usbd_device *usbd_dev;
@@ -165,8 +166,11 @@ static const char *usb_strings[] = {
 };
 
 // Buffer to be used for control requests.
-uint8_t usbd_control_buffer[128];
+static uint8_t usbd_control_buffer[128];
 
+
+// current line coding (only for GET_LINE_CODING support)
+static usb_cdc_line_coding line_coding;
 
 static enum usbd_request_return_codes cdcacm_control_request(usbd_device *usbd_dev, struct usb_setup_data *req, uint8_t **buf,
 		uint16_t *len, void (**complete)(usbd_device *usbd_dev, struct usb_setup_data *req))
@@ -184,8 +188,7 @@ static enum usbd_request_return_codes cdcacm_control_request(usbd_device *usbd_d
 		// advertise it in the ACM functional descriptor.
 		struct notify_serial_state : usb_cdc_notification {
 			uint16_t value;
-		} __attribute__((packed));
-		notify_serial_state notif;
+		} __attribute__((packed)) notif;
 		static_assert (sizeof(notif) == 10, "incorrect USB_CDC_NOTIFY_SERIAL_STATE size");
 
 		// We echo signals back to host as notification.
@@ -195,13 +198,21 @@ static enum usbd_request_return_codes cdcacm_control_request(usbd_device *usbd_d
 		notif.wIndex = 0;
 		notif.wLength = 2;
 		notif.value = req->wValue & 3;
-		// usbd_ep_write_packet(Usb::epCdcNotify, &notif, 10);
+		usbd_ep_write_packet(usbd_dev, Usb::epCdcNotify, &notif, 10);
 		return USBD_REQ_HANDLED;
 	}
+
 	case USB_CDC_REQ_SET_LINE_CODING:
-		if (*len < sizeof(struct usb_cdc_line_coding))
+		if (*len < sizeof(usb_cdc_line_coding))
 			return USBD_REQ_NOTSUPP;
+		memcpy(&line_coding, *buf, sizeof(line_coding));
 		return USBD_REQ_HANDLED;
+
+	case USB_CDC_REQ_GET_LINE_CODING:
+		*buf = (uint8_t*)&line_coding;
+		*len = sizeof(line_coding);
+		return USBD_REQ_HANDLED;
+
 	}
 	return USBD_REQ_NOTSUPP;
 }

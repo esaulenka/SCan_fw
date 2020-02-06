@@ -13,6 +13,9 @@ CppApplication {
 
 
     files: [
+        "Can/can.h",
+        "Can/candrv.cpp",
+        "Can/candrv.h",
         "canhacker.cpp",
         "canhacker.h",
         "system/startup.c",

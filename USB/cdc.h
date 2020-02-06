@@ -113,11 +113,11 @@ struct usb_cdc_acm_descriptor {
 } __attribute__((packed));
 
 // Table 13: Class-Specific Request Codes for PSTN subclasses
-// ...
-#define USB_CDC_REQ_SET_LINE_CODING		0x20
-// ...
-#define USB_CDC_REQ_SET_CONTROL_LINE_STATE	0x22
-// ...
+enum USB_CDC_REQ_CODES {
+    USB_CDC_REQ_SET_LINE_CODING		= 0x20,
+    USB_CDC_REQ_GET_LINE_CODING		= 0x21,
+    USB_CDC_REQ_SET_CONTROL_LINE_STATE	= 0x22,
+};
 
 // Table 17: Line Coding Structure
 struct usb_cdc_line_coding {

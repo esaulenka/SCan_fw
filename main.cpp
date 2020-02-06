@@ -7,44 +7,43 @@
 #include "stm32.h"
 #include <cstdio>
 
-CanHacker canHack;
 
 extern "C" int main();
 int main()
 {
 	DBG("\n\nCore started!\n");
 
+	// remap CAN1, TIM3 (buzzer), SPI3
+	AFIO->MAPR =
+			AFIO_MAPR_CAN_REMAP_0*2 |
+			AFIO_MAPR_TIM3_REMAP_0*3 |
+			AFIO_MAPR_SPI3_REMAP;
+
 	Timer::init();
 	Usb::init();
 
-//	Timer sendTmr;
-	bool connectPrev = false;
+	// LIN tests
+//	PinLin1Slp::Mode(OUTPUT_2MHZ);	PinLin1Slp::On();
+//	PinLin2Slp::Mode(OUTPUT_2MHZ);	PinLin2Slp::On();
+//	PinLinBreak::Mode(OUTPUT_2MHZ);	PinLinBreak::On();
 
+	//bool connectPrev = false;
 
 	while (1)
 	{
 
-		bool connect = Usb::checkConnect();
-		if (connect != connectPrev)
+		/*bool connect =*/ Usb::checkConnect();
+		/*if (connect != connectPrev)
 		{
 			connectPrev = connect;
-			if (connect)
-				DBG("connected\n");
-			else
-				DBG("disconnect\n");
-		}
+			if (connect)	DBG("connected\n");
+			else			DBG("disconnect\n");
+		}*/
 
+		canHacker.processPackets();
+		canHacker.processCmd();
 
-//		if (sendTmr.checkTimeout(1000))
-//		{
-//			sendTmr.restart();
-//			char buf[32];
-//			int len = sprintf(buf, "%d\n", (int)Timer::counter());
-//			Usb::send(buf, len);
-//		}
-
-		canHack.processCmd();
-
+		/*
 		auto checkPort = [](uint16_t &oldVal, uint16_t newVal, const char* label) {
 			if (oldVal != newVal) {
 				DBG("%s: %X -> %X\n", label, oldVal, newVal);
@@ -56,7 +55,7 @@ int main()
 		checkPort(port[0], GPIOA->IDR & (~maskA), "portA");
 		checkPort(port[1], GPIOB->IDR, "portB");
 		checkPort(port[2], GPIOC->IDR, "portC");
-		checkPort(port[3], GPIOD->IDR, "portD");
+		checkPort(port[3], GPIOD->IDR, "portD");*/
 
 	}
 }

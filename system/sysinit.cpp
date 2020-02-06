@@ -91,15 +91,15 @@ static inline void init_clocks ()
 static inline void init_prescalers (void)
 {
 	#if (CLOCK_AHB  != 36000000) || \
-		(CLOCK_APB1 != 9000000) || \
+		(CLOCK_APB1 != 36000000) || \
 		(CLOCK_APB2 != 9000000)
 		#error "Incorrect prescaler!"
 	#endif
 
 	RCC->CFGR =		RCC_CFGR_HPRE_DIV2 |		// HCLK = SYSCLK/2
 					RCC_CFGR_PPRE2_DIV4 |		// PCLK2 = HCLK/4,	APB2 will be 9 MHz
-					RCC_CFGR_PPRE1_DIV4;		// PCLK1 = HCLK/4,	APB1 will be 9 MHz
-												// ADC clock = default, PCLK/2 = 4.5 MHz
+					RCC_CFGR_PPRE1_DIV1;		// PCLK1 = HCLK/1,	APB1 will be 36 MHz
+												// ADC clock = default, PCLK2/2 = 4.5 MHz
 
 }
 
