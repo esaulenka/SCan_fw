@@ -27,21 +27,17 @@ int main()
 //	PinLin2Slp::Mode(OUTPUT_2MHZ);	PinLin2Slp::On();
 //	PinLinBreak::Mode(OUTPUT_2MHZ);	PinLinBreak::On();
 
-	//bool connectPrev = false;
-
 	while (1)
 	{
 
-		/*bool connect =*/ Usb::checkConnect();
-		/*if (connect != connectPrev)
-		{
-			connectPrev = connect;
-			if (connect)	DBG("connected\n");
-			else			DBG("disconnect\n");
-		}*/
+		Usb::checkConnect();
 
-		canHacker.processPackets();
-		canHacker.processCmd();
+		if (! canHacker.processPackets() &&
+			! canHacker.processCmd())
+		{
+			// go to sleep
+			__WFI();
+		}
 
 		/*
 		auto checkPort = [](uint16_t &oldVal, uint16_t newVal, const char* label) {

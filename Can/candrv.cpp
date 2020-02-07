@@ -7,6 +7,11 @@
 #include "canhacker.h"
 
 
+// отключить авторазделение фильтров на первый и второй каналы;
+// для CAN1 используются 13 фильтров, для CAN2 - 15
+#define SPLIT_FILTERS_FOR_CAN_HACKER 13
+
+
 
 uint32_t CanDrv::init (Can::Channel aChannel, uint32_t aBaudrate, bool silent)
 {
@@ -78,6 +83,12 @@ uint32_t CanDrv::init (Can::Channel aChannel, uint32_t aBaudrate, bool silent)
 		CAN1->FM1R = 0x0FFFFFFF;		// all filters - in list mode
 		CAN1->FS1R = 0x0FFFFFFF;		// all filters - 32-bit scale
 		CAN1->FFA1R = 0;				// all filters - to FIFO 0
+
+#if defined SPLIT_FILTERS_FOR_CAN_HACKER
+		// set filters offset for channel 2
+		CAN1->FMR = (SPLIT_FILTERS_FOR_CAN_HACKER << 8) | CAN_FMR_FINIT;
+#endif
+
 		CAN_FilterInit = 0;
 	}
 
@@ -164,9 +175,11 @@ uint32_t CanDrv::setFilter (Can::Channel aChannel, const uint64_t * apFilters)
 		CAN1->FM1R = (CAN1->FM1R & ~filter_en_msk) | filter_list_msk;
 	}
 
+#if not defined SPLIT_FILTERS_FOR_CAN_HACKER
 	// set filters offset for channel 2
 	if (aChannel == Can::CANch1)
 		CAN1->FMR = (filter_offset << 8) | CAN_FMR_FINIT;
+#endif
 
 	CAN_FilterInit = 0;
 	return res;
@@ -322,19 +335,21 @@ CCan::TCanState CanDrv::getState (TCanChannel aChannel)
 
 
 
-extern "C" void CAN1_RX0_IRQHandler (void)
+extern "C" void CAN1_RX0_IRQHandler ()
 {
 	auto pkt = CanDrv::rcvIrq (Can::CANch1);
 	canHacker.packetReceived(Can::CANch1, pkt);
-	if (canHacker.gateEnabled(Can::CANch1))
+
+	if (canHacker.gateEnabled(Can::CANch1, pkt.id))
 		CanDrv::send(Can::CANch2, pkt);
 }
 
-extern "C" void CAN2_RX0_IRQHandler (void)
+extern "C" void CAN2_RX0_IRQHandler ()
 {
 	auto pkt = CanDrv::rcvIrq (Can::CANch2);
 	canHacker.packetReceived(Can::CANch2, pkt);
-	if (canHacker.gateEnabled(Can::CANch2))
+
+	if (canHacker.gateEnabled(Can::CANch2, pkt.id))
 		CanDrv::send(Can::CANch1, pkt);
 }
 

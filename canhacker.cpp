@@ -17,6 +17,14 @@ static const char version2[] = "vSTM32\r";
 CanHacker canHacker;
 
 
+// can filters
+const uint64_t CanHacker::canFilterEverything[] = {
+		Can::Filter::Mask11 (0,0),
+		Can::Filter::Mask29 (0,0),
+		0	// end of filters mask
+};
+
+
 void CanHacker::packetReceived(Can::Channel channel, const Can::Pkt &packet)
 {
 	if (canSettings[channel].open)
@@ -96,7 +104,11 @@ void CanHacker::parse()
 
 	// Задать значение аппаратного фильтра CAN "FXX12345678"
 	// Задать значение маски аппаратного фильтра CAN "fXX12345678"
-	// TODO
+	case 'F': case 'f':
+		if (cmd.idx == 11 &&
+			canSetFilter(cmd0 == 'f'))
+			ack();
+		break;
 
 	// Отправить пакет в CAN "tXiiiLdddddddddddddddd", "T11234567825566"
 	case 'T':
@@ -117,8 +129,9 @@ void CanHacker::parse()
 
 	// Блокировать прохождение пакета с заданным ID в задан-ном канале "LX123"
 	case 'L':
-		// TODO
-		ack();
+		if (cmd.idx >= 2 &&
+			canGateBlock(channel))
+			ack();
 		break;
 
 
@@ -169,13 +182,7 @@ bool CanHacker::canOpen(Can::Channel channel, bool silent)
 	if (br == 0) return false;
 
 	CanDrv::init(channel, br, silent);
-	// TODO filters
-	static const uint64_t filters[] = {
-			Can::Filter::Mask11 (0,0),
-			Can::Filter::Mask29 (0,0),
-			0	// end of filters mask
-	};
-	CanDrv::setFilter(channel, filters);
+	CanDrv::setFilter(channel, canFilterEverything);
 
 	canSettings[channel].open = true;
 	return true;
@@ -194,6 +201,23 @@ bool CanHacker::canGate(Can::Channel channel, bool enable)
 {
 	if (channel > 1) return false;
 	canSettings[channel].gate = enable;
+	return true;
+}
+
+bool CanHacker::canGateBlock(uint8_t channel)
+{
+	bool enable = true;
+	if (channel > 1)
+	{
+		enable = false;
+		channel -= 2;
+	}
+	if (channel > 1) return false;
+
+	uint32_t id = parseHex(&cmd.data[2], cmd.idx-2);
+	if (id > 0x1FFF'FFFF) return false;
+
+	canSettings[channel].gateFilter = enable ? id : -1;
 	return true;
 }
 
@@ -223,6 +247,62 @@ bool CanHacker::canSend(Can::Channel channel, bool id29bit)
 	return true;
 }
 
+bool CanHacker::canSetFilter(bool mask)
+{
+	// Задать значение аппаратного фильтра CAN "FXX12345678"
+	// Задать значение маски аппаратного фильтра CAN "fXX12345678"
+
+	// почему-то на первый и второй канал неодинаковое количество фильтров
+	enum {
+		ch1filters = 13,
+		ch2filters = 15,
+	};
+
+	uint8_t filterNo = parseHex(&cmd.data[1], 2);
+	uint32_t filterVal = parseHex(&cmd.data[3], 8);
+	filterVal &= 0x1FFF'FFFF;	// 29 bits max
+
+	if (filterNo >= ch1filters+ch2filters) return false;
+
+	Can::Channel ch = (filterNo < ch1filters) ? Can::CANch1 : Can::CANch2;
+	if (ch == Can::CANch2) filterNo -= ch1filters;
+
+	auto &curFilter = canSettings[ch].fiters[filterNo];
+	if (! mask)
+		curFilter.id = filterVal;
+	else
+		curFilter.mask = filterVal;
+
+	// очередной костыль. Команды приходят в порядке "значение, маска"
+	if (mask)
+	{
+		const auto filters = canSettings[ch].fiters;
+		const uint32_t filtCount = (ch == Can::CANch1) ? ch1filters : ch2filters;
+
+		uint64_t filtArr[16] = {}; int outIdx = 0;
+		for (auto i = 0u; i < filtCount; i++)
+		{
+			const auto id = filters[i].id;
+			const auto mask = filters[i].mask;
+			if (id && mask)
+			{
+				if (id <= 0x7FF && mask <= 0x7FF)
+					filtArr[outIdx++] = Can::Filter::Mask11(id, mask);
+				else
+					filtArr[outIdx++] = Can::Filter::Mask29(id, mask);
+			}
+		}
+		if (outIdx)
+			CanDrv::setFilter(ch, filtArr);
+		else
+			CanDrv::setFilter(ch, canFilterEverything);
+	}
+
+	return true;
+}
+
+
+
 bool CanHacker::processPackets()
 {
 	bool haveData = false;
@@ -244,7 +324,7 @@ bool CanHacker::processPackets()
 			makeHex(&buf[2], pkt.id, idLength);
 			buf[2 + idLength] = makeHex(pkt.data_len);
 			for (auto i = 0u; i < pkt.data_len; i++)
-				makeHex(&buf[2 + idLength + 1 + i*2], pkt.data[i], 2);
+				makeHex2(&buf[2 + idLength + 1 + i*2], pkt.data[i]);
 
 			const uint32_t timestamp = pkt.timestamp % 10000u;
 			const uint32_t tsOffset = 2 + idLength + 1 + pkt.data_len * 2;
@@ -273,7 +353,6 @@ int CanHacker::parseDecimal(const char *str, uint32_t len)
 	}
 	return res;
 }
-
 int CanHacker::parseHex(const char *str, uint32_t len)
 {
 	int res = 0;
@@ -301,6 +380,11 @@ void CanHacker::makeHex(char *buf, uint32_t value, uint32_t bufLen)
 		value /= 16;
 	}
 	std::reverse(buf, buf + bufLen);
+}
+void CanHacker::makeHex2(char *buf, uint32_t value)
+{
+	buf[0] = makeHex(value / 16);
+	buf[1] = makeHex(value);
 }
 uint8_t CanHacker::makeHex(uint32_t value)
 {

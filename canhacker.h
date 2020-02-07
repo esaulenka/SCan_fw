@@ -17,8 +17,11 @@ public:
 	// вызывается из прерывания CAN
 	void packetReceived(Can::Channel channel, const Can::Pkt & packet);
 
-	bool gateEnabled(Can::Channel sourceCh)
-	{	return canSettings[sourceCh].gate;	}
+	bool gateEnabled(Can::Channel sourceCh, uint32_t pktId) const
+	{
+		return canSettings[sourceCh].gate &&
+			   canSettings[sourceCh].gateFilter != pktId;
+	}
 
 private:
 
@@ -28,6 +31,7 @@ private:
 	int parseHex(const char * str, uint32_t len);
 
 	void makeHex(char * buf, uint32_t value, uint32_t bufLen);
+	void makeHex2(char * buf, uint32_t value);	// make byte
 	uint8_t makeHex(uint32_t value);	// make half-byte
 
 
@@ -37,17 +41,20 @@ private:
 	bool canOpen(Can::Channel channel, bool silent);
 	bool canClose(Can::Channel channel);
 	bool canGate(Can::Channel channel, bool enable);
+	bool canGateBlock(uint8_t channel);
 	bool canSend(Can::Channel channel, bool id29bit);
+	bool canSetFilter(bool mask);
 
 	struct {
 		bool open = false;
 		bool silent = false;
 		bool gate = false;
+		uint32_t gateFilter = -1;
 		uint32_t baudrate = 0;
 		struct {
 			uint32_t id;
 			uint32_t mask;
-		} fiters[15];
+		} fiters[15] = {};
 	} canSettings[2];
 
 
@@ -60,6 +67,9 @@ private:
 	};
 
 	CircularBuffer<TCanPktExt, 32> canPkt[2];
+
+	static const uint64_t canFilterEverything[];
+
 
 
 	struct {
