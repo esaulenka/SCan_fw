@@ -24,7 +24,6 @@
 #ifndef LIBOPENCM3_USB_DWC_OTG_FS_H
 #define LIBOPENCM3_USB_DWC_OTG_FS_H
 
-#include "otg_common.h"
 #include "stm32f1xx.h"
 
 
@@ -43,5 +42,45 @@ typedef struct
 #define USB_DFIFO(i)		*(__IO uint32_t *)				(USB_OTG_FS_PERIPH_BASE + USB_OTG_FIFO_BASE + (i) * USB_OTG_FIFO_SIZE)
 #define USB_OTG_PCGCCTL		((USB_OTG_PowerClockGatingTypeDef *)(USB_OTG_FS_PERIPH_BASE + USB_OTG_PCGCCTL_BASE))
 
+
+
+
+
+// OTG Receive Status Pop Register (OTG_GRXSTSP)
+#define OTG_GRXSTSP_FRMNUM_MASK		(0xf << 21)
+
+#define OTG_GRXSTSP_PKTSTS_MASK		(0xf << 17)
+#define OTG_GRXSTSP_PKTSTS_GOUTNAK	(0x1 << 17)
+#define OTG_GRXSTSP_PKTSTS_OUT		(0x2 << 17)
+#define OTG_GRXSTSP_PKTSTS_IN		(0x2 << 17)
+#define OTG_GRXSTSP_PKTSTS_OUT_COMP	(0x3 << 17)
+#define OTG_GRXSTSP_PKTSTS_IN_COMP	(0x3 << 17)
+#define OTG_GRXSTSP_PKTSTS_SETUP_COMP	(0x4 << 17)
+#define OTG_GRXSTSP_PKTSTS_DTERR	(0x5 << 17)
+#define OTG_GRXSTSP_PKTSTS_SETUP	(0x6 << 17)
+#define OTG_GRXSTSP_PKTSTS_CHH		(0x7 << 17)
+
+
+// OTG Device Control IN Endpoint 0 Control Register (OTG_DIEPCTL0)
+#define OTG_DIEPCTL0_TXFNUM_MASK	(0xf << 22)
+
+#define OTG_DIEPCTL0_MPSIZ_MASK	(0x3 << 0)
+#define OTG_DIEPCTL0_MPSIZ_64	(0x0 << 0)
+#define OTG_DIEPCTL0_MPSIZ_32	(0x1 << 0)
+#define OTG_DIEPCTL0_MPSIZ_16	(0x2 << 0)
+#define OTG_DIEPCTL0_MPSIZ_8	(0x3 << 0)
+
+
+// OTG Device OUT Endpoint 0 Transfer Size Register (OTG_DOEPTSIZ0)
+// Bit 31 - Reserved
+#define OTG_DIEPSIZ0_STUPCNT_1		(0x1 << 29)
+#define OTG_DIEPSIZ0_STUPCNT_2		(0x2 << 29)
+#define OTG_DIEPSIZ0_STUPCNT_3		(0x3 << 29)
+#define OTG_DIEPSIZ0_STUPCNT_MASK	(0x3 << 29)
+// Bits 28:20 - Reserved
+#define OTG_DIEPSIZ0_PKTCNT			(1 << 19)
+// Bits 18:7 - Reserved
+
+#define OTG_DIEPSIZ0_XFRSIZ_MASK	(0x7f << 0)
 
 #endif

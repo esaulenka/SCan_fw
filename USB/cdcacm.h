@@ -14,8 +14,8 @@ public:
     static uint32_t receive(const void * data, uint32_t bufLen);
 
     enum Endpoints {
-        epCdcRx = 0x01,
-        epCdcTx = 0x82,
+        epOutCdc = 0x01,
+        epInCdc = 0x82,
         epCdcNotify = 0x83,
     };
 

@@ -43,7 +43,9 @@ LGPL License Terms @ref lgpl_license
 #define MAX_USER_CONTROL_CALLBACK	4
 #define MAX_USER_SET_CONFIG_CALLBACK	4
 
+#ifndef MIN
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
+#endif
 
 /** Internal collection of device information. */
 struct _usbd_device {
@@ -58,7 +60,7 @@ struct _usbd_device {
 	uint8_t current_address;
 	uint8_t current_config;
 
-	uint16_t pm_top;    /**< Top of allocated endpoint buffer memory */
+	//uint16_t pm_top;    /**< Top of allocated endpoint buffer memory */
 
 	// User callback functions for various USB events
 	void (*user_callback_reset)(void);

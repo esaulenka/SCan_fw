@@ -49,21 +49,21 @@ const struct _usbd_driver stm32f107_usb_driver = {
 static usbd_device *stm32f107_usbd_init(void)
 {
 	RCC->AHBENR |= RCC_AHBENR_OTGFSEN;	// enable clock
-	USB_OTG_FS->GUSBCFG |= OTG_GUSBCFG_PHYSEL;
+	USB_OTG_FS->GUSBCFG |= USB_OTG_GUSBCFG_PHYSEL;
 
 
 	// Wait for AHB idle.
-	while (!(USB_OTG_FS->GRSTCTL & OTG_GRSTCTL_AHBIDL));
+	while (!(USB_OTG_FS->GRSTCTL & USB_OTG_GRSTCTL_AHBIDL));
 	// Do core soft reset.
-	USB_OTG_FS->GRSTCTL |= OTG_GRSTCTL_CSRST;
-	while (USB_OTG_FS->GRSTCTL & OTG_GRSTCTL_CSRST);
+	USB_OTG_FS->GRSTCTL |= USB_OTG_GRSTCTL_CSRST;
+	while (USB_OTG_FS->GRSTCTL & USB_OTG_GRSTCTL_CSRST);
 
 //	if (USB_OTG_FS->CID >= OTG_CID_HAS_VBDEN) {
 //		// Enable VBUS detection in device mode and power up the PHY.
-//		USB_OTG_FS->GCCFG |= OTG_GCCFG_VBDEN | OTG_GCCFG_PWRDWN;
+//		USB_OTG_FS->GCCFG |= USB_OTG_GCCFG_VBDEN | USB_OTG_GCCFG_PWRDWN;
 //	} else {
 		// Enable VBUS sensing in device mode and power up the PHY.
-		USB_OTG_FS->GCCFG |= OTG_GCCFG_VBUSBSEN | OTG_GCCFG_PWRDWN;
+		USB_OTG_FS->GCCFG |= USB_OTG_GCCFG_VBUSBSEN | USB_OTG_GCCFG_PWRDWN;
 //	}
 	// Explicitly enable DP pullup (not all cores do this by default)
 	USB_DEVICE->DCTL &= ~USB_OTG_DCTL_SDIS;

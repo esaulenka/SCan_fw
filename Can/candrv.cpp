@@ -211,19 +211,18 @@ void CanDrv::setTransceiverStandby()
 uint32_t CanDrv::send (Can::Channel aChannel, const Can::Pkt &pkt)
 {
 	CAN_TypeDef * CANx = id2hw (aChannel);
-	CAN_TxMailBox_TypeDef * tx;
 
 	// проверяем, есть ли свободные mailbox'ы
 	if (! (CANx->TSR & (CAN_TSR_TME0 | CAN_TSR_TME1 | CAN_TSR_TME2)))
 		return 1;
 
 	// получаем номер mailbox'а
-	uint32_t mailbox_num = (CANx->TSR >> 24) & 0x03;
-	tx = & CANx->sTxMailBox[mailbox_num];
+	const uint32_t mailbox_num = (CANx->TSR >> 24) & 0x03;
+	CAN_TxMailBox_TypeDef * tx = & CANx->sTxMailBox[mailbox_num];
 
 	// заполняем
-	tx->TDLR =  *(uint32_t*)(& pkt.data[0]);
-	tx->TDHR =  *(uint32_t*)(& pkt.data[4]);
+	tx->TDLR =  __UNALIGNED_UINT32_READ(&pkt.data[0]);
+	tx->TDHR =  __UNALIGNED_UINT32_READ(&pkt.data[4]);
 
 	tx->TDTR = pkt.data_len;
 
@@ -258,9 +257,8 @@ Can::Pkt CanDrv::rcvIrq(Can::Channel aChannel)
 		pkt.id = pkt.id >> 3;
 	else						// standard ID
 		pkt.id = pkt.id >> 21;
-
-	*(uint32_t*)(& pkt.data[0])= rx->RDLR;
-	*(uint32_t*)(& pkt.data[4])= rx->RDHR;
+	__UNALIGNED_UINT32_WRITE(&pkt.data[0], rx->RDLR);
+	__UNALIGNED_UINT32_WRITE(&pkt.data[4], rx->RDHR);
 	pkt.data_len = rx->RDTR & 0x0F;
 
 	// осводождаем аппаратное FIFO

@@ -19,11 +19,9 @@
 
 #include <string.h>
 #include "usbd.h"
-#include "otg_common.h"
 #include "usb_private.h"
 #include "usb_dwc_common.h"
 #include "otg_fs.h"
-#include "Debug.h"
 
 
 
@@ -41,7 +39,8 @@ void dwc_ep_setup(usbd_device *usbd_dev, uint8_t addr, uint8_t type, uint16_t ma
 	const uint8_t dir = addr & 0x80;
 	addr &= 0x7f;
 
-	if (addr == 0) { // For the default control endpoint
+	if (addr == 0)  // For the default control endpoint
+	{
 		// Configure IN part.
 		if (max_size >= 64)
 			USB_INEP(0)->DIEPCTL = OTG_DIEPCTL0_MPSIZ_64;
@@ -53,14 +52,14 @@ void dwc_ep_setup(usbd_device *usbd_dev, uint8_t addr, uint8_t type, uint16_t ma
 			USB_INEP(0)->DIEPCTL = OTG_DIEPCTL0_MPSIZ_8;
 
 		USB_INEP(0)->DIEPTSIZ = (max_size & OTG_DIEPSIZ0_XFRSIZ_MASK);
-		USB_INEP(0)->DIEPCTL |= OTG_DIEPCTL0_EPENA | OTG_DIEPCTL0_SNAK;
+		USB_INEP(0)->DIEPCTL |= USB_OTG_DIEPCTL_EPENA | USB_OTG_DIEPCTL_SNAK;
 
 		// Configure OUT part.
 		usbd_dev->doeptsiz[0] = OTG_DIEPSIZ0_STUPCNT_1 |
 			OTG_DIEPSIZ0_PKTCNT |
 			(max_size & OTG_DIEPSIZ0_XFRSIZ_MASK);
 		USB_OUTEP(0)->DOEPTSIZ = usbd_dev->doeptsiz[0];
-		USB_OUTEP(0)->DOEPCTL |= OTG_DOEPCTL0_EPENA | OTG_DIEPCTL0_SNAK;
+		USB_OUTEP(0)->DOEPCTL |= USB_OTG_DOEPCTL_EPENA | USB_OTG_DIEPCTL_SNAK;
 
 		USB_OTG_FS->DIEPTXF0_HNPTXFSIZ = ((max_size / 4) << 16) | usbd_dev->driver->rx_fifo_size;
 		usbd_dev->fifo_mem_top += max_size / 4;
@@ -71,14 +70,15 @@ void dwc_ep_setup(usbd_device *usbd_dev, uint8_t addr, uint8_t type, uint16_t ma
 
 	if (dir)
 	{
-		USB_OTG_FS->DIEPTXF[addr] = ((max_size / 4) << 16) | usbd_dev->fifo_mem_top;
+		// attention to DIEPTXF addressing!
+		USB_OTG_FS->DIEPTXF[addr - 1] = ((max_size / 4) << 16) | usbd_dev->fifo_mem_top;
 		usbd_dev->fifo_mem_top += max_size / 4;
 
 		USB_INEP(addr)->DIEPTSIZ = (max_size & OTG_DIEPSIZ0_XFRSIZ_MASK);
 		USB_INEP(addr)->DIEPCTL |=
-		    OTG_DIEPCTL0_EPENA | OTG_DIEPCTL0_SNAK | (type << 18)
-		    | OTG_DIEPCTL0_USBAEP | OTG_DIEPCTLX_SD0PID
-		    | (addr << 22) | max_size;
+			USB_OTG_DIEPCTL_EPENA | USB_OTG_DIEPCTL_SNAK | (type << 18) |
+			USB_OTG_DIEPCTL_USBAEP | USB_OTG_DIEPCTL_SD0PID_SEVNFRM |
+			(addr << 22) | max_size;
 
 		if (callback)
 			usbd_dev->user_callback_ctr[addr][USB_TRANSACTION_IN] = callback;
@@ -88,9 +88,9 @@ void dwc_ep_setup(usbd_device *usbd_dev, uint8_t addr, uint8_t type, uint16_t ma
 	{
 		usbd_dev->doeptsiz[addr] = OTG_DIEPSIZ0_PKTCNT | (max_size & OTG_DIEPSIZ0_XFRSIZ_MASK);
 		USB_OUTEP(addr)->DOEPTSIZ = usbd_dev->doeptsiz[addr];
-		USB_OUTEP(addr)->DOEPCTL |= OTG_DOEPCTL0_EPENA |
-		    OTG_DOEPCTL0_USBAEP | OTG_DIEPCTL0_CNAK |
-		    OTG_DOEPCTLX_SD0PID | (type << 18) | max_size;
+		USB_OUTEP(addr)->DOEPCTL |=
+			USB_OTG_DOEPCTL_EPENA | USB_OTG_DOEPCTL_CNAK | (type << 18) |
+			USB_OTG_DOEPCTL_USBAEP | USB_OTG_DOEPCTL_SD0PID_SEVNFRM | max_size;
 
 		if (callback)
 			usbd_dev->user_callback_ctr[addr][USB_TRANSACTION_OUT] = callback;
@@ -105,11 +105,11 @@ void dwc_endpoints_reset(usbd_device *usbd_dev)
 	// Disable any currently active endpoints
 	for (int i = 1; i < 4; i++)
 	{
-		if (USB_OUTEP(i)->DOEPCTL & OTG_DOEPCTL0_EPENA)
-			USB_OUTEP(i)->DOEPCTL |= OTG_DOEPCTL0_EPDIS;
+		if (USB_OUTEP(i)->DOEPCTL & USB_OTG_DOEPCTL_EPENA)
+			USB_OUTEP(i)->DOEPCTL |= USB_OTG_DOEPCTL_EPDIS;
 
-		if (USB_INEP(i)->DIEPCTL & OTG_DIEPCTL0_EPENA)
-			USB_INEP(i)->DIEPCTL |= OTG_DIEPCTL0_EPDIS;
+		if (USB_INEP(i)->DIEPCTL & USB_OTG_DIEPCTL_EPENA)
+			USB_INEP(i)->DIEPCTL |= USB_OTG_DIEPCTL_EPDIS;
 	}
 
 	// Flush all tx/rx fifos
@@ -131,7 +131,6 @@ void dwc_ep_stall_set(usbd_device *usbd_dev, uint8_t addr, uint8_t stall)
 	if (addr & 0x80)
 	{
 		addr &= 0x7F;
-
 		if (stall) {
 			USB_INEP(addr)->DIEPCTL |= USB_OTG_DIEPCTL_STALL;
 		} else {
@@ -167,12 +166,8 @@ void dwc_ep_nak_set(usbd_device *usbd_dev, uint8_t addr, uint8_t nak)
 		return;
 
 	usbd_dev->force_nak[addr] = nak;
-
-	if (nak) {
-		USB_OUTEP(addr)->DOEPCTL |= USB_OTG_DOEPCTL_SNAK;
-	} else {
-		USB_OUTEP(addr)->DOEPCTL |= USB_OTG_DOEPCTL_CNAK;
-	}
+	USB_OUTEP(addr)->DOEPCTL |= nak ?
+				USB_OTG_DOEPCTL_SNAK : USB_OTG_DOEPCTL_CNAK;
 }
 
 uint16_t dwc_ep_write_packet(usbd_device *usbd_dev, uint8_t addr, const void *buf, uint16_t len)
@@ -182,13 +177,12 @@ uint16_t dwc_ep_write_packet(usbd_device *usbd_dev, uint8_t addr, const void *bu
 	addr &= 0x7F;
 
 	// Return if endpoint is already enabled.
-	if (USB_INEP(addr)->DIEPTSIZ & OTG_DIEPSIZ0_PKTCNT)
+	if (USB_INEP(addr)->DIEPTSIZ & USB_OTG_DIEPTSIZ_PKTCNT)
 		return 0;
 
 	// Enable endpoint for transmission.
 	USB_INEP(addr)->DIEPTSIZ = OTG_DIEPSIZ0_PKTCNT | len;
-	USB_INEP(addr)->DIEPCTL |= OTG_DIEPCTL0_EPENA |
-				     OTG_DIEPCTL0_CNAK;
+	USB_INEP(addr)->DIEPCTL |= USB_OTG_DIEPCTL_EPENA | USB_OTG_DIEPCTL_CNAK;
 
 	// Copy buffer to endpoint FIFO, note - memcpy does not work.
 	const uint32_t *buf32 = buf;
@@ -234,23 +228,23 @@ static void dwc_flush_txfifo(usbd_device *usbd_dev, int ep)
 	(void)usbd_dev;
 
 	// set IN endpoint NAK
-	USB_INEP(ep)->DIEPCTL |= OTG_DIEPCTL0_SNAK;
+	USB_INEP(ep)->DIEPCTL |= USB_OTG_DIEPCTL_SNAK;
 	// wait for core to respond
-	while (!(USB_INEP(ep)->DIEPINT & OTG_DIEPINTX_INEPNE)) {
+	while (!(USB_INEP(ep)->DIEPINT & USB_OTG_DIEPINT_INEPNE)) {
 		// idle
 	}
 	// get fifo for this endpoint
 	const uint32_t fifo = (USB_INEP(ep)->DIEPCTL & OTG_DIEPCTL0_TXFNUM_MASK) >> 22;
 	// wait for core to idle
 
-	while (!(USB_OTG_FS->GRSTCTL & OTG_GRSTCTL_AHBIDL)) {
+	while (!(USB_OTG_FS->GRSTCTL & USB_OTG_GRSTCTL_AHBIDL)) {
 		// idle
 	}
 	// flush tx fifo
-	USB_OTG_FS->GRSTCTL = (fifo << 6) | OTG_GRSTCTL_TXFFLSH;
+	USB_OTG_FS->GRSTCTL = (fifo << 6) | USB_OTG_GRSTCTL_TXFFLSH;
 	// reset packet counter
 	USB_INEP(ep)->DIEPTSIZ = 0;
-	while ((USB_OTG_FS->GRSTCTL & OTG_GRSTCTL_TXFFLSH)) {
+	while ((USB_OTG_FS->GRSTCTL & USB_OTG_GRSTCTL_TXFFLSH)) {
 		// idle
 	}
 }
@@ -321,14 +315,14 @@ void dwc_poll(usbd_device *usbd_dev)
 
 	// There is no global interrupt flag for transmit complete.
 	// The XFRC bit must be checked in each OTG_DIEPINT(x).
-	for (int i = 0; i < 4; i++)	// Iterate over endpoints.
+	for (int ep = 0; ep < 4; ep++)	// Iterate over endpoints.
 	{
-		if (USB_INEP(i)->DIEPINT & USB_OTG_DIEPINT_XFRC)
+		if (USB_INEP(ep)->DIEPINT & USB_OTG_DIEPINT_XFRC)
 		{
 			// Transfer complete.
-			if (usbd_dev->user_callback_ctr[i][USB_TRANSACTION_IN])
-				usbd_dev->user_callback_ctr[i][USB_TRANSACTION_IN](usbd_dev, i);
-			USB_INEP(i)->DIEPINT = OTG_DIEPINTX_XFRC;
+			if (usbd_dev->user_callback_ctr[ep][USB_TRANSACTION_IN])
+				usbd_dev->user_callback_ctr[ep][USB_TRANSACTION_IN](usbd_dev, ep);
+			USB_INEP(ep)->DIEPINT = USB_OTG_DIEPINT_XFRC;
 		}
 	}
 
@@ -339,6 +333,8 @@ void dwc_poll(usbd_device *usbd_dev)
 		const uint32_t rxstsp = USB_OTG_FS->GRXSTSP;
 		const uint32_t pktsts = rxstsp & USB_OTG_GRXSTSP_PKTSTS;
 		const uint8_t ep = rxstsp & USB_OTG_GRXSTSP_EPNUM;
+
+//		DBG("RXFLVL: ep:%d pktsts:%d\n", ep, pktsts>>17);
 
 		if (pktsts == OTG_GRXSTSP_PKTSTS_SETUP_COMP)
 			usbd_dev->user_callback_ctr[ep][USB_TRANSACTION_SETUP] (usbd_dev, ep);

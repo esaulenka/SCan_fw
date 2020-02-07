@@ -239,7 +239,7 @@ bool CanHacker::processPackets()
 			const bool id29bit = (pkt.id > 0x7FF);
 
 			buf[0] = id29bit ? 'T' : 't';
-			buf[1] = makeHex(ch);
+			buf[1] = makeHex(ch + 1);
 			const uint8_t idLength = id29bit ? 8 : 3;
 			makeHex(&buf[2], pkt.id, idLength);
 			buf[2 + idLength] = makeHex(pkt.data_len);

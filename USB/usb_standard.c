@@ -33,8 +33,6 @@ LGPL License Terms @ref lgpl_license
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
-
 #include <string.h>
 #include "usbd.h"
 #include "usb_private.h"
@@ -42,13 +40,12 @@ LGPL License Terms @ref lgpl_license
 int usbd_register_set_config_callback(usbd_device *usbd_dev,
 				       usbd_set_config_callback callback)
 {
-	int i;
-
-	for (i = 0; i < MAX_USER_SET_CONFIG_CALLBACK; i++) {
-		if (usbd_dev->user_callback_set_config[i]) {
-			if (usbd_dev->user_callback_set_config[i] == callback) {
+	for (int i = 0; i < MAX_USER_SET_CONFIG_CALLBACK; i++)
+	{
+		if (usbd_dev->user_callback_set_config[i])
+		{
+			if (usbd_dev->user_callback_set_config[i] == callback)
 				return 0;
-			}
 			continue;
 		}
 
@@ -66,12 +63,11 @@ void usbd_register_set_altsetting_callback(usbd_device *usbd_dev,
 }
 
 static uint16_t build_config_descriptor(usbd_device *usbd_dev,
-				   uint8_t index, uint8_t *buf, uint16_t len)
+				   uint8_t index, uint8_t *buf, uint_fast16_t len)
 {
 	uint8_t *tmpbuf = buf;
 	const struct usb_config_descriptor *cfg = &usbd_dev->config[index];
-	uint16_t count, total = 0, totallen = 0;
-	uint16_t i, j, k;
+	uint_fast16_t count, total = 0, totallen = 0;
 
 	memcpy(buf, cfg, count = MIN(len, cfg->bLength));
 	buf += count;
@@ -80,9 +76,11 @@ static uint16_t build_config_descriptor(usbd_device *usbd_dev,
 	totallen += cfg->bLength;
 
 	// For each interface...
-	for (i = 0; i < cfg->bNumInterfaces; i++) {
+	for (uint_fast8_t i = 0; i < cfg->bNumInterfaces; i++)
+	{
 		// Interface Association Descriptor, if any
-		if (cfg->interface[i].iface_assoc) {
+		if (cfg->interface[i].iface_assoc)
+		{
 			const struct usb_iface_assoc_descriptor *assoc =
 					cfg->interface[i].iface_assoc;
 			memcpy(buf, assoc, count = MIN(len, assoc->bLength));
@@ -92,7 +90,8 @@ static uint16_t build_config_descriptor(usbd_device *usbd_dev,
 			totallen += assoc->bLength;
 		}
 		// For each alternate setting...
-		for (j = 0; j < cfg->interface[i].num_altsetting; j++) {
+		for (uint_fast8_t j = 0; j < cfg->interface[i].num_altsetting; j++)
+		{
 			const struct usb_interface_descriptor *iface =
 					&cfg->interface[i].altsetting[j];
 			// Copy interface descriptor.
@@ -102,27 +101,27 @@ static uint16_t build_config_descriptor(usbd_device *usbd_dev,
 			total += count;
 			totallen += iface->bLength;
 			// Copy extra bytes (function descriptors).
-			if (iface->extra) {
-				memcpy(buf, iface->extra,
-				       count = MIN(len, iface->extralen));
+			if (iface->extra)
+			{
+				memcpy(buf, iface->extra, count = MIN(len, (unsigned)iface->extralen));
 				buf += count;
 				len -= count;
 				total += count;
 				totallen += iface->extralen;
 			}
 			// For each endpoint...
-			for (k = 0; k < iface->bNumEndpoints; k++) {
-				const struct usb_endpoint_descriptor *ep =
-				    &iface->endpoint[k];
+			for (uint_fast8_t k = 0; k < iface->bNumEndpoints; k++)
+			{
+				const struct usb_endpoint_descriptor *ep = &iface->endpoint[k];
 				memcpy(buf, ep, count = MIN(len, ep->bLength));
 				buf += count;
 				len -= count;
 				total += count;
 				totallen += ep->bLength;
 				// Copy extra bytes (class specific).
-				if (ep->extra) {
-					memcpy(buf, ep->extra,
-					       count = MIN(len, ep->extralen));
+				if (ep->extra)
+				{
+					memcpy(buf, ep->extra, count = MIN(len, (unsigned)ep->extralen));
 					buf += count;
 					len -= count;
 					total += count;
@@ -154,12 +153,12 @@ usb_standard_get_descriptor(usbd_device *usbd_dev,
 			    struct usb_setup_data *req,
 			    uint8_t **buf, uint16_t *len)
 {
-	int i, array_idx, descr_idx;
 	struct usb_string_descriptor *sd;
 
-	descr_idx = usb_descriptor_index(req->wValue);
+	const int descr_idx = usb_descriptor_index(req->wValue);
 
-	switch (usb_descriptor_type(req->wValue)) {
+	switch (usb_descriptor_type(req->wValue))
+	{
 	case USB_DT_DEVICE:
 		*buf = (uint8_t *) usbd_dev->desc;
 		*len = MIN(*len, usbd_dev->desc->bLength);
@@ -171,7 +170,8 @@ usb_standard_get_descriptor(usbd_device *usbd_dev,
 	case USB_DT_STRING:
 		sd = (struct usb_string_descriptor *)usbd_dev->ctrl_buf;
 
-		if (descr_idx == 0) {
+		if (descr_idx == 0)
+		{
 			// Send sane Language ID descriptor...
 			sd->wData[0] = USB_LANGID_ENGLISH_US;
 			sd->bLength = sizeof(sd->bLength) +
@@ -179,24 +179,25 @@ usb_standard_get_descriptor(usbd_device *usbd_dev,
 				      sizeof(sd->wData[0]);
 
 			*len = MIN(*len, sd->bLength);
-		} else {
-			array_idx = descr_idx - 1;
+		}
+		else
+		{
+			const int array_idx = descr_idx - 1;
 
-			if (!usbd_dev->strings) {
+			if (!usbd_dev->strings)
+			{
 				// Device doesn't support strings.
 				return USBD_REQ_NOTSUPP;
 			}
 
 			// Check that string index is in range.
-			if (array_idx >= usbd_dev->num_strings) {
+			if (array_idx >= usbd_dev->num_strings)
 				return USBD_REQ_NOTSUPP;
-			}
 
 			/* Strings with Language ID differnet from
 			 * USB_LANGID_ENGLISH_US are not supported */
-			if (req->wIndex != USB_LANGID_ENGLISH_US) {
+			if (req->wIndex != USB_LANGID_ENGLISH_US)
 				return USBD_REQ_NOTSUPP;
-			}
 
 			/* This string is returned as UTF16, hence the
 			 * multiplication
@@ -207,10 +208,8 @@ usb_standard_get_descriptor(usbd_device *usbd_dev,
 
 			*len = MIN(*len, sd->bLength);
 
-			for (i = 0; i < (*len / 2) - 1; i++) {
-				sd->wData[i] =
-					usbd_dev->strings[array_idx][i];
-			}
+			for (int i = 0; i < (*len / 2) - 1; i++)
+				sd->wData[i] = usbd_dev->strings[array_idx][i];
 		}
 
 		sd->bDescriptorType = USB_DT_STRING;
@@ -229,9 +228,8 @@ usb_standard_set_address(usbd_device *usbd_dev,
 	(void)len;
 
 	// The actual address is only latched at the STATUS IN stage.
-	if ((req->bmRequestType != 0) || (req->wValue >= 128)) {
+	if ((req->bmRequestType != 0) || (req->wValue >= 128))
 		return USBD_REQ_NOTSUPP;
-	}
 
 	usbd_dev->current_address = req->wValue;
 
@@ -252,15 +250,14 @@ usb_standard_set_configuration(usbd_device *usbd_dev,
 	(void)buf;
 	(void)len;
 
-	if (req->wValue > 0) {
+	if (req->wValue > 0)
+	{
 		for (int i = 0; i < usbd_dev->desc->bNumConfigurations; i++)
-		{
 			if (req->wValue == usbd_dev->config[i].bConfigurationValue)
 			{
 				found_index = i;
 				break;
 			}
-		}
 		if (found_index < 0)
 			return USBD_REQ_NOTSUPP;
 	}
@@ -322,16 +319,14 @@ usb_standard_set_interface(usbd_device *usbd_dev,
 			   struct usb_setup_data *req,
 			   uint8_t **buf, uint16_t *len)
 {
-	const struct usb_config_descriptor *cfx =
-		&usbd_dev->config[usbd_dev->current_config - 1];
+	const struct usb_config_descriptor *cfx = &usbd_dev->config[usbd_dev->current_config - 1];
 
 	(void)buf;
 
 	if (req->wIndex >= cfx->bNumInterfaces)
 		return USBD_REQ_NOTSUPP;
 
-	const struct usb_interface *iface =
-		&cfx->interface[req->wIndex];
+	const struct usb_interface *iface = &cfx->interface[req->wIndex];
 
 	if (req->wValue >= iface->num_altsetting)
 		return USBD_REQ_NOTSUPP;
@@ -342,8 +337,7 @@ usb_standard_set_interface(usbd_device *usbd_dev,
 		return USBD_REQ_NOTSUPP;
 
 	if (usbd_dev->user_callback_set_altsetting)
-		usbd_dev->user_callback_set_altsetting(usbd_dev,
-								   req->wIndex, req->wValue);
+		usbd_dev->user_callback_set_altsetting(usbd_dev, req->wIndex, req->wValue);
 
 	*len = 0;
 	return USBD_REQ_HANDLED;
@@ -354,8 +348,7 @@ usb_standard_get_interface(usbd_device *usbd_dev,
 			   struct usb_setup_data *req,
 			   uint8_t **buf, uint16_t *len)
 {
-	const struct usb_config_descriptor *cfx =
-		&usbd_dev->config[usbd_dev->current_config - 1];
+	const struct usb_config_descriptor *cfx = &usbd_dev->config[usbd_dev->current_config - 1];
 
 	if (req->wIndex >= cfx->bNumInterfaces)
 		return USBD_REQ_NOTSUPP;
@@ -377,9 +370,8 @@ usb_standard_device_get_status(usbd_device *usbd_dev,
 
 	// bit 0: self powered
 	// bit 1: remote wakeup
-	if (*len > 2) {
+	if (*len > 2)
 		*len = 2;
-	}
 	(*buf)[0] = 0;
 	(*buf)[1] = 0;
 
@@ -395,9 +387,8 @@ usb_standard_interface_get_status(usbd_device *usbd_dev,
 	(void)req;
 	// not defined
 
-	if (*len > 2) {
+	if (*len > 2)
 		*len = 2;
-	}
 	(*buf)[0] = 0;
 	(*buf)[1] = 0;
 
@@ -497,9 +488,8 @@ _usbd_standard_request_device(usbd_device *usbd_dev,
 		break;
 	}
 
-	if (!command) {
+	if (!command)
 		return USBD_REQ_NOTSUPP;
-	}
 
 	return command(usbd_dev, req, buf, len);
 }
@@ -513,7 +503,8 @@ _usbd_standard_request_interface(usbd_device *usbd_dev,
 		struct usb_setup_data *req,
 		uint8_t **buf, uint16_t *len) = NULL;
 
-	switch (req->bRequest) {
+	switch (req->bRequest)
+	{
 	case USB_REQ_CLEAR_FEATURE:
 	case USB_REQ_SET_FEATURE:
 		// not defined
@@ -529,9 +520,8 @@ _usbd_standard_request_interface(usbd_device *usbd_dev,
 		break;
 	}
 
-	if (!command) {
+	if (!command)
 		return USBD_REQ_NOTSUPP;
-	}
 
 	return command(usbd_dev, req, buf, len);
 }
@@ -545,16 +535,15 @@ _usbd_standard_request_endpoint(usbd_device *usbd_dev,
 		struct usb_setup_data *req,
 		uint8_t **buf, uint16_t *len) = NULL;
 
-	switch (req->bRequest) {
+	switch (req->bRequest)
+	{
 	case USB_REQ_CLEAR_FEATURE:
-		if (req->wValue == USB_FEAT_ENDPOINT_HALT) {
+		if (req->wValue == USB_FEAT_ENDPOINT_HALT)
 			command = usb_standard_endpoint_unstall;
-		}
 		break;
 	case USB_REQ_SET_FEATURE:
-		if (req->wValue == USB_FEAT_ENDPOINT_HALT) {
+		if (req->wValue == USB_FEAT_ENDPOINT_HALT)
 			command = usb_standard_endpoint_stall;
-		}
 		break;
 	case USB_REQ_GET_STATUS:
 		command = usb_standard_endpoint_get_status;
@@ -566,9 +555,8 @@ _usbd_standard_request_endpoint(usbd_device *usbd_dev,
 		break;
 	}
 
-	if (!command) {
+	if (!command)
 		return USBD_REQ_NOTSUPP;
-	}
 
 	return command(usbd_dev, req, buf, len);
 }
@@ -578,16 +566,15 @@ _usbd_standard_request(usbd_device *usbd_dev, struct usb_setup_data *req,
 		       uint8_t **buf, uint16_t *len)
 {
 	// FIXME: Have class/vendor requests as well.
-	if ((req->bmRequestType & USB_REQ_TYPE_TYPE) != USB_REQ_TYPE_STANDARD) {
+	if ((req->bmRequestType & USB_REQ_TYPE_TYPE) != USB_REQ_TYPE_STANDARD)
 		return USBD_REQ_NOTSUPP;
-	}
 
-	switch (req->bmRequestType & USB_REQ_TYPE_RECIPIENT) {
+	switch (req->bmRequestType & USB_REQ_TYPE_RECIPIENT)
+	{
 	case USB_REQ_TYPE_DEVICE:
 		return _usbd_standard_request_device(usbd_dev, req, buf, len);
 	case USB_REQ_TYPE_INTERFACE:
-		return _usbd_standard_request_interface(usbd_dev, req,
-							buf, len);
+		return _usbd_standard_request_interface(usbd_dev, req, buf, len);
 	case USB_REQ_TYPE_ENDPOINT:
 		return _usbd_standard_request_endpoint(usbd_dev, req, buf, len);
 	default:

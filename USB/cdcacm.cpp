@@ -49,7 +49,7 @@ static const struct usb_endpoint_descriptor comm_endp[] = {{
 static const struct usb_endpoint_descriptor data_endp[] = {{
 	.bLength = USB_DT_ENDPOINT_SIZE,
 	.bDescriptorType = USB_DT_ENDPOINT,
-	.bEndpointAddress = Usb::epCdcRx,
+	.bEndpointAddress = Usb::epOutCdc,
 	.bmAttributes = USB_ENDPOINT_ATTR_BULK,
 	.wMaxPacketSize = 64,
 	.bInterval = 1,
@@ -58,7 +58,7 @@ static const struct usb_endpoint_descriptor data_endp[] = {{
 }, {
 	.bLength = USB_DT_ENDPOINT_SIZE,
 	.bDescriptorType = USB_DT_ENDPOINT,
-	.bEndpointAddress = Usb::epCdcTx,
+	.bEndpointAddress = Usb::epInCdc,
 	.bmAttributes = USB_ENDPOINT_ATTR_BULK,
 	.wMaxPacketSize = 64,
 	.bInterval = 1,
@@ -159,7 +159,7 @@ static const struct usb_config_descriptor config = {
 	.interface = ifaces,
 };
 
-static const char *usb_strings[] = {
+static const char * const usb_strings[] = {
 	"Black Sphere Technologies",
 	"CDC-ACM Demo",
 	"DEMO",
@@ -229,7 +229,7 @@ static void cdcacm_data_rx_cb(usbd_device *usbd_dev, uint8_t ep)
 	(void)ep;
 
 	char buf[64], *ptr = buf;
-	int len = usbd_ep_read_packet(usbd_dev, Usb::epCdcRx, buf, sizeof(buf));
+	int len = usbd_ep_read_packet(usbd_dev, Usb::epOutCdc, buf, sizeof(buf));
 	while (len--)
 		rxBuf.Put(*ptr++);
 }
@@ -239,12 +239,12 @@ static void cdcacm_data_tx_cb(usbd_device *usbd_dev, uint8_t ep)
 	(void)ep;
 	static char buf[64];
 	static uint32_t buf_ptr = 0;
-	static bool mutex = false;
+//	static bool mutex = false;
 	static bool need_zlp = false;
 
-	if (mutex) return;
-
-	mutex = true;
+//	if (mutex) return;
+//	mutex = true;
+	NVIC_DisableIRQ(OTG_FS_IRQn);
 
 	for ( ; buf_ptr < sizeof(buf) && txBuf.Avail(); ++buf_ptr)
 		buf[buf_ptr] = txBuf.Get();
@@ -253,7 +253,7 @@ static void cdcacm_data_tx_cb(usbd_device *usbd_dev, uint8_t ep)
 
 	if (buf_ptr > 0 || need_zlp)
 	{
-		if (usbd_ep_write_packet(usbd_dev, Usb::epCdcTx, buf, buf_ptr))
+		if (usbd_ep_write_packet(usbd_dev, Usb::epInCdc, buf, buf_ptr))
 		{
 			// write ok
 			if (buf_ptr == 0)
@@ -261,17 +261,17 @@ static void cdcacm_data_tx_cb(usbd_device *usbd_dev, uint8_t ep)
 			buf_ptr = 0;
 		}
 	}
-
-	mutex = false;
-
+	NVIC_EnableIRQ(OTG_FS_IRQn);
+//	mutex = false;
 }
+
 
 static void cdcacm_set_config(usbd_device *usbd_dev, uint16_t wValue)
 {
 	(void)wValue;
 
-	usbd_ep_setup(usbd_dev, Usb::epCdcRx, USB_ENDPOINT_ATTR_BULK, 64, cdcacm_data_rx_cb);
-	usbd_ep_setup(usbd_dev, Usb::epCdcTx, USB_ENDPOINT_ATTR_BULK, 64, cdcacm_data_tx_cb);
+	usbd_ep_setup(usbd_dev, Usb::epOutCdc, USB_ENDPOINT_ATTR_BULK, 64, cdcacm_data_rx_cb);
+	usbd_ep_setup(usbd_dev, Usb::epInCdc, USB_ENDPOINT_ATTR_BULK, 64, cdcacm_data_tx_cb);
 	usbd_ep_setup(usbd_dev, Usb::epCdcNotify, USB_ENDPOINT_ATTR_INTERRUPT, 16, nullptr);
 
 	usbd_register_control_callback(
@@ -321,7 +321,7 @@ bool Usb::send(const void * data, uint32_t dataLen)
 
 	if (usbd_dev && connected)
 	{
-		cdcacm_data_tx_cb (usbd_dev, Usb::epCdcTx);
+		cdcacm_data_tx_cb (usbd_dev, Usb::epInCdc);
 		return true;
 	}
 	return false;
