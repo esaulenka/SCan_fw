@@ -54,7 +54,7 @@ CppApplication {
     cpp.libraryPaths: [ "system" ]
 
 
-    type: "hex"         // The filetag to generate
+    type: ["hex", "size"]         // The filetag to generate
     cpp.cLanguageVersion: "c11"
     cpp.cxxLanguageVersion: "c++17"
     cpp.positionIndependentCode: false
@@ -92,7 +92,7 @@ CppApplication {
     // print size
     Rule {
         inputs: "application"
-        outputFileTags: [ "siz" ]
+        outputFileTags: [ "size" ]
         prepare: {
             var args = [input.filePath];
             var sizePath = product.cpp.toolchainInstallPath + "/" + product.cpp.toolchainPrefix + "size";
