@@ -362,9 +362,9 @@ int CanHacker::parseHex(const char *str, uint32_t len)
 		if (d >= '0' && d <= '9')
 			d -= '0';
 		else if (d >= 'A' && d <= 'F')
-			d -= 'A';
+			d -= 'A' - 10;
 		else if (d >= 'a' && d <= 'f')
-			d -= 'a';
+			d -= 'a' - 10;
 		else
 			return -1;
 		res = res * 16 + d;
