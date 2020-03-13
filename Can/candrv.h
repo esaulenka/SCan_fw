@@ -3,14 +3,7 @@
 #include "stm32.h"
 #include "can.h"
 
-inline constexpr uint32_t CAN_BTR(uint32_t BRP, uint32_t TSEG1, uint32_t TSEG2, uint32_t SJW)
-{
-	SJW &= 0x03;	// 24..25
-	TSEG2 &= 0x07;	// 20..22
-	TSEG1 &= 0x0F;	// 16..19
-	BRP &= 0x3FF;	// 0..9
-	return (SJW << 24) | (TSEG2 << 20) | (TSEG1 << 16) | BRP;
-}
+
 inline constexpr uint32_t can_btr(uint32_t prescaler, uint32_t seg1, uint32_t seg2, uint32_t sync_jump)
 {
 	uint32_t SJW = (sync_jump - 1) & 0x03;	// bits 24..25
@@ -27,16 +20,16 @@ class CanDrv
 public:
 	// значения регистра BTR
 /*	enum TCanBaudrate {		// частота APB1 = 9 MHz
-		Baudrate500	= CAN_BTR(0, 10,5,3),
-		Baudrate250	= CAN_BTR(1, 10,5,3),
-		Baudrate125	= CAN_BTR(3, 10,5,3),
-		Baudrate100	= CAN_BTR(4, 10,5,3),
-		Baudrate83	= CAN_BTR(5, 10,5,3),	// 83.333
-		Baudrate50	= CAN_BTR(9, 10,5,3),
-		Baudrate33	= CAN_BTR(14,10,5,3),
-		Baudrate20	= CAN_BTR(17,15,7,3),
-		Baudrate15	= CAN_BTR(23,15,7,3),
-		Baudrate10	= CAN_BTR(35,15,7,3),
+		Baudrate500	= can_btr(1,  11, 6, 4),
+		Baudrate250	= can_btr(2,  11, 6, 4),
+		Baudrate125	= can_btr(4,  11, 6, 4),
+		Baudrate100	= can_btr(5,  11, 6, 4),
+		Baudrate83	= can_btr(6,  11, 6, 4),	// 83.333
+		Baudrate50	= can_btr(10, 11, 6, 4),
+		Baudrate33	= can_btr(15, 11, 6, 4),
+		Baudrate20	= can_btr(18, 16, 8, 4),
+		Baudrate15	= can_btr(24, 16, 8, 4),
+		Baudrate10	= can_btr(36, 16, 8, 4),
 	};*/
 	enum TCanBaudrate {		// частота APB1 = 36 MHz
 		Baudrate1000	= can_btr(  2, 11, 6, 4),	// 18 tq
