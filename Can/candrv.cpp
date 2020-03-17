@@ -137,32 +137,30 @@ uint32_t CanDrv::setFilter (Can::Channel aChannel, const uint64_t * apFilters)
 	uint32_t filter_list_msk = 0;	// биты режима фильтров: 1 - список / 0 - маска
 
 	// заполняем структуру с фильтрами
-	for (int i = 0; ; i++)
+	for (int i = 0; ; i++, filter_offset++)
 	{
 		// биты 31..1, 63..33 - идентификатор
 		// бит 32 - признак списка ID (не маски)
 		// бит 0 - признак наличия самого фильтра
-
-		const uint32_t filterNo = filter_offset + i;
 
 		// список закончился
 		if (! (apFilters[i] & 0x01))
 			break;
 
 		// ошибка! закончилось место!!
-		if (filterNo >= 28)
+		if (filter_offset >= 28)
 		{
 			res = 1;
 			break;
 		}
 
-		CAN1->sFilterRegister[filterNo].FR1 = (apFilters[i] >> 32  ) & 0xFFFFFFFE;
-		CAN1->sFilterRegister[filterNo].FR2 = (apFilters[i] 		) & 0xFFFFFFFE;
+		CAN1->sFilterRegister[filter_offset].FR1 = (apFilters[i] >> 32  ) & 0xFFFFFFFE;
+		CAN1->sFilterRegister[filter_offset].FR2 = (apFilters[i] 		) & 0xFFFFFFFE;
 
-		filter_en_msk |= (1u << filterNo);
+		filter_en_msk |= (1u << filter_offset);
 
 		if (apFilters[i] & (1ULL << 32))
-			filter_list_msk |= (1u << filterNo);
+			filter_list_msk |= (1u << filter_offset);
 	}
 
 
