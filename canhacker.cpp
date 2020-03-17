@@ -8,7 +8,8 @@
 #include <algorithm>
 
 
-static const char version[] = "VF_01_01_2020\r";
+static const char version[] = "VF_01_03_2020\r";
+static const char versionHW[] = "H01\r";
 static const char serial[] = "S0123456789ABCDEF\r";
 static const char version2[] = "vSTM32\r";
 
@@ -67,14 +68,21 @@ void CanHacker::parse()
 	const bool param2 = (cmd2 == '1');
 
 	auto ack = []() {	Usb::send("\r", 1);		};
+	auto nak = []() {	Usb::send("\x07", 1);	};
 
 	switch(cmd0)
 	{
+	// unknown req "D0" Answer "\r"
+	case 'D':
+		ack();
+		break;
 	// Запрос версии прошивки "V" Ответ "VF_11_02_2019\r"
 	// Запрос серийного номера "VS" Ответ "0123456789ABCDEF"
 	case 'V':
 		if (cmd1 == 'S' && cmd.idx == 2)
 			Usb::send(serial, sizeof (serial)-1);
+		else if (cmd1 == 'H' && cmd.idx == 2)
+			Usb::send(versionHW, sizeof (versionHW)-1);
 		else
 			Usb::send(version, sizeof (version)-1);
 		break;
@@ -82,7 +90,10 @@ void CanHacker::parse()
 	case 'v':
 		Usb::send(version2, sizeof (version2)-1);
 		break;
-
+	// unknown command
+	case 'N':
+		nak();
+		break;
 	// Открыть канал CAN "OxY"
 	case 'O':
 		if (cmd.idx == 3 &&
