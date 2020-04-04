@@ -47,22 +47,31 @@ CppApplication {
     cpp.libraryPaths: [ "system" ]
 
 
-    type: ["hex", "size"]         // The filetag to generate
+    type: ["hex", "size"]         // The filetags to generate
     cpp.cLanguageVersion: "c11"
     cpp.cxxLanguageVersion: "c++17"
     cpp.positionIndependentCode: false
     cpp.generateLinkerMapFile: true
     cpp.enableExceptions: false
     cpp.executableSuffix: ".elf"
-
+    cpp.enableRtti: false
 
     cpp.driverFlags: [
         "-mcpu=cortex-m3",
         "-mfloat-abi=soft",
         "-specs=nosys.specs",
+        "-fdata-sections",
+        "-ffunction-sections",
+    ]
+    cpp.cxxFlags: [
+        "-fno-use-cxa-atexit",
+        "-fno-exceptions",
+        "-fno-rtti",
     ]
     cpp.driverLinkerFlags: [
         "-nostartfiles",
+        "-specs=nano.specs",
+        "-Wl,--gc-sections",
     ]
 
 
@@ -75,8 +84,7 @@ CppApplication {
         }
         prepare: {
             var args = ["-O", "ihex", input.filePath, output.filePath];
-            var extractorPath = product.cpp.toolchainInstallPath + "/" + product.cpp.toolchainPrefix + "objcopy";
-            var cmd = new Command(extractorPath, args);
+            var cmd = new Command(product.cpp.objcopyPath, args);
             cmd.description = "converting to hex";
             return cmd;
         }
