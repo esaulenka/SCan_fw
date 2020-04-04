@@ -49,7 +49,7 @@ public:
 		Baudrate10		= can_btr(200, 11, 6, 4),	// 18 tq
 	};
 	static uint32_t init (Can::Channel aChannel, uint32_t aBaudrate, bool silent);
-	static uint32_t setFilter (Can::Channel aChannel, const uint64_t * apFilters);
+	static uint32_t setFilter (Can::Channel aChannel, const Can::Filter * apFilters);
 
 	static void deinit (Can::Channel aChannel);
 

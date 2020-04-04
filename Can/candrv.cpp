@@ -119,7 +119,7 @@ uint32_t CanDrv::init (Can::Channel aChannel, uint32_t aBaudrate, bool silent)
 }
 
 
-uint32_t CanDrv::setFilter (Can::Channel aChannel, const uint64_t * apFilters)
+uint32_t CanDrv::setFilter (Can::Channel aChannel, const Can::Filter * apFilters)
 {
 	PeriphBit<CAN1_BASE + offsetof(CAN_TypeDef, FMR), 0>		CAN_FilterInit;
 
@@ -144,7 +144,7 @@ uint32_t CanDrv::setFilter (Can::Channel aChannel, const uint64_t * apFilters)
 		// бит 0 - признак наличия самого фильтра
 
 		// список закончился
-		if (! (apFilters[i] & 0x01))
+		if (! (apFilters[i].val & 0x01))
 			break;
 
 		// ошибка! закончилось место!!
@@ -154,12 +154,12 @@ uint32_t CanDrv::setFilter (Can::Channel aChannel, const uint64_t * apFilters)
 			break;
 		}
 
-		CAN1->sFilterRegister[filter_offset].FR1 = (apFilters[i] >> 32  ) & 0xFFFFFFFE;
-		CAN1->sFilterRegister[filter_offset].FR2 = (apFilters[i] 		) & 0xFFFFFFFE;
+		CAN1->sFilterRegister[filter_offset].FR1 = (apFilters[i].val >> 32  ) & 0xFFFFFFFE;
+		CAN1->sFilterRegister[filter_offset].FR2 = (apFilters[i].val 		) & 0xFFFFFFFE;
 
 		filter_en_msk |= (1u << filter_offset);
 
-		if (apFilters[i] & (1ULL << 32))
+		if (apFilters[i].val & (1ULL << 32))
 			filter_list_msk |= (1u << filter_offset);
 	}
 
@@ -198,7 +198,7 @@ void CanDrv::deinit (Can::Channel aChannel)
 	}
 	else
 	{
-		PeriphPwr::Disable (PeriphPwr::PwrCAN1);
+		PeriphPwr::Disable (PeriphPwr::PwrCAN2);
 		PinCan2Stdby::Off ();
 
 		PinCan2Rx::Mode(ANALOGINPUT);
@@ -207,17 +207,6 @@ void CanDrv::deinit (Can::Channel aChannel)
 
 }
 
-/*
-// перевести трансиверы в спящий режим. Позже драйвер может перевести их в нужное состояние.
-void CanDrv::setTransceiverStandby()
-{
-	CAN1_En::Mode(OUTPUT);
-	CAN2_En::Mode(OUTPUT);
-
-	CAN1_En::Off();
-	CAN2_En::Off();
-}
-*/
 
 uint32_t CanDrv::send (Can::Channel aChannel, const Can::Pkt &pkt)
 {

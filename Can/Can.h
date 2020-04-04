@@ -77,36 +77,47 @@ public:
 
 	// объявление фильтров при инициализации
 	struct Filter {
+		Filter() : val(0) {}
+
 		// добавить пару идентификаторов для точного соответствия
-		static constexpr uint64_t List11 (uint16_t id1, uint16_t id2) {
-			return ((uint64_t) (IdStd (id1) | 0x01) << 32) |
-					(uint64_t) (IdStd (id2) | 0x01);
+		static constexpr Filter List11 (uint16_t id1, uint16_t id2) {
+			return (IdStd (id1) << 32) | IdStd (id2) | item_list;
 		}
-		static constexpr uint64_t List29 (uint32_t id1, uint32_t id2) {
-			return ((uint64_t) (IdExt (id1) | 0x01) << 32) |
-					(uint64_t) (IdExt (id2) | 0x01);
+		static constexpr Filter List29 (uint32_t id1, uint32_t id2) {
+			return (IdExt (id1) << 32) | IdExt (id2) | item_list;
 		}
 
 		// добавить один идентификатор
-		static constexpr uint64_t List11 (uint16_t id) { return List11(id, id); }
-		static constexpr uint64_t List29 (uint32_t id) { return List29(id, id); }
+		static constexpr Filter List11 (uint16_t id) { return List11(id, id); }
+		static constexpr Filter List29 (uint32_t id) { return List29(id, id); }
 
 		// добавить один идентификатор с маской
-		static constexpr uint64_t Mask11 (uint16_t id, uint16_t mask) {
-			return ((uint64_t) (IdStd (id)) << 32) |
-					(uint64_t) (IdStd (mask) | 0x01);
+		static constexpr Filter Mask11 (uint16_t id, uint16_t mask) {
+			return (IdStd (id) << 32) | IdStd (mask) | item_mask;
 		}
-		static constexpr uint64_t Mask29 (uint32_t id, uint32_t mask) {
-			return ((uint64_t) (IdExt (id)) << 32) |
-					(uint64_t) (IdExt (mask) | 0x01);
+		static constexpr Filter Mask29 (uint32_t id, uint32_t mask) {
+			return (IdExt (id) << 32) | IdExt (mask) | item_mask;
 		}
 
+		// маркер конца списка. Обязательно добавлять в массив фильтров!
+		static constexpr Filter End() { return 0; }
+
 	private:
+		uint64_t val;
+		friend class CanDrv;
+		enum : uint64_t {
+			item_mask = 1u,
+			item_list = (1ull << 32) | 1u,
+		};
+
+
+		constexpr Filter(uint64_t x): val(x) {}
+
 		// формирование ID для фильтров
-		static constexpr uint32_t IdStd (uint16_t id)
-		{	return (id & 0x7FF) << 21; }
-		static constexpr uint32_t IdExt (uint32_t id)
-		{	return ((id & 0x1FFFFFFF) << 3) | 0x04; }
+		static constexpr uint64_t IdStd (uint16_t id)
+		{	return (id & 0x7FFu) << 21; }
+		static constexpr uint64_t IdExt (uint32_t id)
+		{	return ((id & 0x1FFFFFFFu) << 3) | 0x04; }
 	};
 };
 

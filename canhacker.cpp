@@ -19,10 +19,10 @@ CanHacker canHacker;
 
 
 // can filters
-const uint64_t CanHacker::canFilterEverything[] = {
+const Can::Filter CanHacker::canFilterEverything[] = {
 		Can::Filter::Mask11 (0,0),
 		Can::Filter::Mask29 (0,0),
-		0	// end of filters mask
+		Can::Filter::End()	// end of filters mask
 };
 
 
@@ -290,7 +290,7 @@ bool CanHacker::canSetFilter(bool mask)
 		const auto filters = canSettings[ch].fiters;
 		const uint32_t filtCount = (ch == Can::CANch1) ? ch1filters : ch2filters;
 
-		uint64_t filtArr[16] = {}; int outIdx = 0;
+		Can::Filter filtArr[16]; int outIdx = 0;
 		for (auto i = 0u; i < filtCount; i++)
 		{
 			const auto id = filters[i].id;

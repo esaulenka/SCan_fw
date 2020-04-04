@@ -68,7 +68,7 @@ private:
 
 	CircularBuffer<TCanPktExt, 32> canPkt[2];
 
-	static const uint64_t canFilterEverything[];
+	static const Can::Filter canFilterEverything[];
 
 
 
