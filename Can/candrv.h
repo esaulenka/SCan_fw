@@ -48,23 +48,20 @@ public:
 		Baudrate15		= can_btr(160,  9, 5, 3),	// 15 tq
 		Baudrate10		= can_btr(200, 11, 6, 4),	// 18 tq
 	};
-	static uint32_t init (Can::Channel aChannel, uint32_t aBaudrate, bool silent);
-	static uint32_t setFilter (Can::Channel aChannel, const Can::Filter * apFilters);
+	static uint32_t init (Can::Channel channel, uint32_t baudrate, bool silent);
+	static uint32_t setFilter (Can::Channel channel, const Can::Filter * filters);
 
-	static void deinit (Can::Channel aChannel);
+	static void deinit (Can::Channel channel);
 
-	//static void setTransceiverStandby();
+	static uint32_t send (Can::Channel channel, const Can::Pkt &pkt);
 
-	static uint32_t send (Can::Channel aChannel, const Can::Pkt &pkt);
+	static Can::Pkt rcvIrq (Can::Channel channel);
 
-	static Can::Pkt rcvIrq (Can::Channel aChannel);
-
-	static bool isTxEmpty (Can::Channel aChannel);
+	static bool isTxEmpty (Can::Channel channel);
 
 
-	static void sleep (Can::Channel aChannel, bool aSleep);
+	static void sleep (Can::Channel channel, bool sleep);
 
-	//static CCan::TCanState getState (Can::Channel aChannel);
 
 
 private:

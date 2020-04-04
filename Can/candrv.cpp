@@ -13,15 +13,14 @@
 
 
 
-uint32_t CanDrv::init (Can::Channel aChannel, uint32_t aBaudrate, bool silent)
+uint32_t CanDrv::init (Can::Channel channel, uint32_t baudrate, bool silent)
 {
-	CAN_TypeDef * CANx = id2hw (aChannel);
+	CAN_TypeDef * CANx = id2hw (channel);
 
 	// enable clock, set pin mode
 	// при включении CAN2 надо включать и CAN1
-	if (aChannel == Can::CANch1)
+	if (channel == Can::CANch1)
 	{
-
 		PinCan1Rx::Mode(INPUTPULLED); PinCan1Rx::PullUp();
 		PinCan1Tx::Mode(ALT_OUTPUT);
 		PinCan1Stdby::Mode(OUTPUT_2MHZ); PinCan1Stdby::On();
@@ -59,13 +58,13 @@ uint32_t CanDrv::init (Can::Channel aChannel, uint32_t aBaudrate, bool silent)
 
 	// set bit timings
 	// enable silent mode
-	CANx->BTR = aBaudrate | (silent ? CAN_BTR_SILM : 0);
+	CANx->BTR = baudrate | (silent ? CAN_BTR_SILM : 0);
 
 	// enable interrupts
 	CANx->IER = CAN_IER_FMPIE0;		// rx fifo pending
 
 	// enable interrupts vectors
-	if (aChannel == Can::CANch1)
+	if (channel == Can::CANch1)
 		NVIC_EnableIRQ (CAN1_RX0_IRQn);
 	else
 		NVIC_EnableIRQ (CAN2_RX0_IRQn);
@@ -73,7 +72,7 @@ uint32_t CanDrv::init (Can::Channel aChannel, uint32_t aBaudrate, bool silent)
 
 	// выставляем настройки фильтров
 
-	if (aChannel == Can::CANch1)
+	if (channel == Can::CANch1)
 	{
 		PeriphBit<CAN1_BASE + offsetof(CAN_TypeDef, FMR), 0>		CAN_FilterInit;
 
@@ -119,14 +118,14 @@ uint32_t CanDrv::init (Can::Channel aChannel, uint32_t aBaudrate, bool silent)
 }
 
 
-uint32_t CanDrv::setFilter (Can::Channel aChannel, const Can::Filter * apFilters)
+uint32_t CanDrv::setFilter (Can::Channel channel, const Can::Filter *filters)
 {
 	PeriphBit<CAN1_BASE + offsetof(CAN_TypeDef, FMR), 0>		CAN_FilterInit;
 
 	uint32_t res = 0;
 	uint32_t filter_offset;
 
-	if (aChannel == Can::CANch1)
+	if (channel == Can::CANch1)
 		filter_offset = 0;
 	else
 		filter_offset = (CAN1->FMR & CAN_FMR_CAN2SB) >> 8;
@@ -144,7 +143,7 @@ uint32_t CanDrv::setFilter (Can::Channel aChannel, const Can::Filter * apFilters
 		// бит 0 - признак наличия самого фильтра
 
 		// список закончился
-		if (! (apFilters[i].val & 0x01))
+		if (! (filters[i].val & 0x01))
 			break;
 
 		// ошибка! закончилось место!!
@@ -154,12 +153,12 @@ uint32_t CanDrv::setFilter (Can::Channel aChannel, const Can::Filter * apFilters
 			break;
 		}
 
-		CAN1->sFilterRegister[filter_offset].FR1 = (apFilters[i].val >> 32  ) & 0xFFFFFFFE;
-		CAN1->sFilterRegister[filter_offset].FR2 = (apFilters[i].val 		) & 0xFFFFFFFE;
+		CAN1->sFilterRegister[filter_offset].FR1 = (filters[i].val >> 32) & 0xFFFFFFFE;
+		CAN1->sFilterRegister[filter_offset].FR2 = (filters[i].val		) & 0xFFFFFFFE;
 
 		filter_en_msk |= (1u << filter_offset);
 
-		if (apFilters[i].val & (1ULL << 32))
+		if (filters[i].val & (1ULL << 32))
 			filter_list_msk |= (1u << filter_offset);
 	}
 
@@ -175,7 +174,7 @@ uint32_t CanDrv::setFilter (Can::Channel aChannel, const Can::Filter * apFilters
 
 #if not defined SPLIT_FILTERS_FOR_CAN_HACKER
 	// set filters offset for channel 2
-	if (aChannel == Can::CANch1)
+	if (channel == Can::CANch1)
 		CAN1->FMR = (filter_offset << 8) | CAN_FMR_FINIT;
 #endif
 
@@ -186,9 +185,9 @@ uint32_t CanDrv::setFilter (Can::Channel aChannel, const Can::Filter * apFilters
 
 // отключает шину.
 // ВАЖНО! при отключении CAN1 остановится и CAN2!!
-void CanDrv::deinit (Can::Channel aChannel)
+void CanDrv::deinit (Can::Channel channel)
 {
-	if (aChannel == Can::CANch1)
+	if (channel == Can::CANch1)
 	{
 		PeriphPwr::Disable (PeriphPwr::PwrCAN1);
 		PinCan1Stdby::Off ();
@@ -208,9 +207,9 @@ void CanDrv::deinit (Can::Channel aChannel)
 }
 
 
-uint32_t CanDrv::send (Can::Channel aChannel, const Can::Pkt &pkt)
+uint32_t CanDrv::send (Can::Channel channel, const Can::Pkt &pkt)
 {
-	CAN_TypeDef * CANx = id2hw (aChannel);
+	CAN_TypeDef * CANx = id2hw (channel);
 
 	// проверяем, есть ли свободные mailbox'ы
 	if (! (CANx->TSR & (CAN_TSR_TME0 | CAN_TSR_TME1 | CAN_TSR_TME2)))
@@ -239,11 +238,11 @@ uint32_t CanDrv::send (Can::Channel aChannel, const Can::Pkt &pkt)
 
 
 
-Can::Pkt CanDrv::rcvIrq(Can::Channel aChannel)
+Can::Pkt CanDrv::rcvIrq(Can::Channel channel)
 {
 	Can::Pkt pkt;
 
-	CAN_TypeDef * CANx = id2hw (aChannel);
+	CAN_TypeDef * CANx = id2hw (channel);
 	CAN_FIFOMailBox_TypeDef * rx = & CANx->sFIFOMailBox[0];
 
 	if (! (CANx->RF0R & CAN_RF0R_FMP0))
@@ -269,9 +268,9 @@ Can::Pkt CanDrv::rcvIrq(Can::Channel aChannel)
 
 
 
-bool CanDrv::isTxEmpty (Can::Channel aChannel)
+bool CanDrv::isTxEmpty (Can::Channel channel)
 {
-	CAN_TypeDef * CANx = id2hw (aChannel);
+	CAN_TypeDef * CANx = id2hw (channel);
 
 	if ((CANx->TSR & (CAN_TSR_TME0 | CAN_TSR_TME1 | CAN_TSR_TME2)) ==
 					 (CAN_TSR_TME0 | CAN_TSR_TME1 | CAN_TSR_TME2))
@@ -280,49 +279,32 @@ bool CanDrv::isTxEmpty (Can::Channel aChannel)
 }
 
 
-void CanDrv::sleep (Can::Channel aChannel, bool aSleep)
+void CanDrv::sleep (Can::Channel channel, bool sleep)
 {
 	PeriphBit< CAN1_BASE + offsetof(CAN_TypeDef, MCR), CAN_MCR_SLEEP >		CAN1_MCR_Sleep;
 	PeriphBit< CAN2_BASE + offsetof(CAN_TypeDef, MCR), CAN_MCR_SLEEP >		CAN2_MCR_Sleep;
 
-	//DBG ("Can %d sleep %s\n", aChannel, aSleep ? "ON" : "OFF");
+	//DBG ("Can %d sleep %s\n", channel, sleep ? "ON" : "OFF");
 
-	if (aChannel == Can::CANch1)
+	if (channel == Can::CANch1)
 	{
-		PinCan1Stdby::On (!aSleep);
-		CAN1_MCR_Sleep = aSleep;
+		PinCan1Stdby::On (sleep);
+		CAN1_MCR_Sleep = sleep;
 	}
 	else
 	{
-		PinCan1Stdby::On (!aSleep);
-		CAN2_MCR_Sleep = aSleep;
+		PinCan2Stdby::On (sleep);
+		CAN2_MCR_Sleep = sleep;
 	}
 }
 
 
-/*
-CCan::TCanState CanDrv::getState (TCanChannel aChannel)
-{
-	CAN_TypeDef * CANx = Id2Hw (aChannel);
-
-	// модуль в спящем режиме
-	if (CANx->MCR & CAN_MCR_SLEEP)		// снимается не сразу после Sleep(false), а через несколько миллисекунд!
-		return CCan::CanSleep;
-
-	// модуль не спит, но драйверы выключены
-	uint32_t drv_on = (aChannel == CANch1) ? CAN1_En::Signalled() : CAN2_En::Signalled();
-	if (! drv_on)
-		return CCan::CanRxOnly;
-
-	// всё полностью включено
-	return CCan::CanActive;
-}
-*/
 
 
 
+extern "C" {
 
-extern "C" void CAN1_RX0_IRQHandler ()
+void CAN1_RX0_IRQHandler ()
 {
 	auto pkt = CanDrv::rcvIrq (Can::CANch1);
 	canHacker.packetReceived(Can::CANch1, pkt);
@@ -331,7 +313,7 @@ extern "C" void CAN1_RX0_IRQHandler ()
 		CanDrv::send(Can::CANch2, pkt);
 }
 
-extern "C" void CAN2_RX0_IRQHandler ()
+void CAN2_RX0_IRQHandler ()
 {
 	auto pkt = CanDrv::rcvIrq (Can::CANch2);
 	canHacker.packetReceived(Can::CANch2, pkt);
@@ -340,5 +322,5 @@ extern "C" void CAN2_RX0_IRQHandler ()
 		CanDrv::send(Can::CANch1, pkt);
 }
 
-
+};	// extern "C"
 
