@@ -71,6 +71,7 @@ struct DummyPin
 	static void Cpl() { }
 	static void Mode(direction) { }
 	static int Latched() { return latched; }
+        static int Signalled() { return latched; }
 };
 
 using DummyPinOn = DummyPin<true>;

@@ -427,11 +427,11 @@ void CanHacker::testPin()
 
 	Usb::send("done\r\n", 6);
 
-	PinBuzzer::Mode(OUTPUT_2MHZ);
-	for (int i = 0; i < 50; i++)
-	{
-		PinBuzzer::Cpl();
-		Timer::delay(3);
-	}
-	PinBuzzer::Off();
+//	PinBuzzer::Mode(OUTPUT_2MHZ);
+//	for (int i = 0; i < 50; i++)
+//	{
+//		PinBuzzer::Cpl();
+//		Timer::delay(3);
+//	}
+//	PinBuzzer::Off();
 }

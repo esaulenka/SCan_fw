@@ -13,11 +13,7 @@ int main()
 {
 	DBG("\n\nCore started!\n");
 
-	// remap CAN1, TIM3 (buzzer), SPI3
-	AFIO->MAPR =
-			AFIO_MAPR_CAN_REMAP_0*2 |
-			AFIO_MAPR_TIM3_REMAP_0*3 |
-			AFIO_MAPR_SPI3_REMAP;
+	initRemap();
 
 	Timer::init();
 	Usb::init();
