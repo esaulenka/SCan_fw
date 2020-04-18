@@ -10,7 +10,7 @@ Supports:
 
 # Board pinout
 
-Debugger should be soldered to test points:
+Debugger should be soldered to test points:  
 ![pinout](<Sigma pinout.png>)
 
 Look at Pins.h for other connections
