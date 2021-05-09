@@ -65,7 +65,7 @@ CppApplication {
     cpp.libraryPaths: [ "system" ]
 
 
-    type: ["hex", "size"]         // The filetags to generate
+    type: ["hex", "size", "dfu"]         // The filetags to generate
     cpp.cLanguageVersion: "c11"
     cpp.cxxLanguageVersion: "c++17"
     cpp.positionIndependentCode: false
@@ -117,6 +117,22 @@ CppApplication {
             var sizePath = product.cpp.toolchainInstallPath + "/" + product.cpp.toolchainPrefix + "size";
             var cmd = new Command(sizePath, args);
             cmd.description = "print size";
+            return cmd;
+        }
+    }
+
+    // make dfu image
+    Rule {
+        inputs: "hex"
+        Artifact {
+            fileTags: ["dfu"]
+            filePath: "../" + product.name + ".dfu"
+        }
+        prepare: {
+            var util = product.sourceDirectory + "/dfu-convert.py";
+            var args = [util, "-i", input.filePath, output.filePath];
+            var cmd = new Command("python", args);
+            cmd.description = "make dfu: " + output.filePath;
             return cmd;
         }
     }
