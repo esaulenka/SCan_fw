@@ -14,8 +14,10 @@ static const char serial[] = "S0123456789ABCDEF\r";
 static const char version2[] = "vSTM32\r";
 
 
+#if PROTOCOL == PROTOCOL_LAWICEL
 // global object
 CanHacker canHacker;
+#endif
 
 
 // can filters
@@ -55,7 +57,7 @@ void CanHacker::parse()
 {
 	if (cmd.idx == 0) return;
 
-	char buf[64] = {};
+	char buf[sizeof(cmd.data)+1] = {};
 	memcpy(buf, cmd.data, cmd.idx);
 	DBG("RX <%s>\n", buf);
 
@@ -76,8 +78,8 @@ void CanHacker::parse()
 	case 'D':
 		ack();
 		break;
-	// Запрос версии прошивки "V" Ответ "VF_11_02_2019\r"
-	// Запрос серийного номера "VS" Ответ "0123456789ABCDEF"
+	// Check firmware version "V" Answer "VF_11_02_2019\r"
+	// Check serial "VS" Answer "0123456789ABCDEF"
 	case 'V':
 		if (cmd1 == 'S' && cmd.idx == 2)
 			Usb::send(serial, sizeof (serial)-1);
@@ -94,34 +96,34 @@ void CanHacker::parse()
 	case 'N':
 		nak();
 		break;
-	// Открыть канал CAN "OxY"
+	// Open CAN channel "OxY"
 	case 'O':
 		if (cmd.idx == 3 &&
 			canOpen(channel, param2))
 			ack();
 		break;
-	// Закрыть канал CAN "Cx"
+	// Close CAN channel "Cx"
 	case 'C':
 		if (cmd.idx == 2 &&
 			canClose(channel))
 			ack();
 		break;
-	// Установить скорость CAN в выбранном канале "Sxy"
+	// Set CAN speed in selected channel "Sxy"
 	case 'S':
 		if (cmd.idx == 3 &&
 			canSpeed(channel, cmd2))
 			ack();
 		break;
 
-	// Задать значение аппаратного фильтра CAN "FXX12345678"
-	// Задать значение маски аппаратного фильтра CAN "fXX12345678"
+	// Set hardware CAN filter ID   "FXX12345678"
+	// Set hardware CAN filter mask "fXX12345678"
 	case 'F': case 'f':
 		if (cmd.idx == 11 &&
 			canSetFilter(cmd0 == 'f'))
 			ack();
 		break;
 
-	// Отправить пакет в CAN "tXiiiLdddddddddddddddd", "T11234567825566"
+	// Send CAN frame "tXiiiLdddddddddddddddd", "T11234567825566"
 	case 'T':
 		if (canSend(channel, true))
 			ack();
@@ -131,14 +133,14 @@ void CanHacker::parse()
 			ack();
 		break;
 
-	// команды CAN шлюза "Gxx"
+	// CAN channels gate "Gxx"
 	case 'G':
 		if (cmd.idx == 3 &&
 			canGate(channel, param2))
 			ack();
 		break;
 
-	// Блокировать прохождение пакета с заданным ID в задан-ном канале "LX123"
+	// Block frame ID in Gate "LX123"
 	case 'L':
 		if (cmd.idx >= 2 &&
 			canGateBlock(channel))
@@ -147,9 +149,9 @@ void CanHacker::parse()
 
 
 	// test pins
-	case 'P':
-		testPin();
-		break;
+//	case 'P':
+//		testPin();
+//		break;
 
 	}
 
@@ -260,10 +262,10 @@ bool CanHacker::canSend(Can::Channel channel, bool id29bit)
 
 bool CanHacker::canSetFilter(bool mask)
 {
-	// Задать значение аппаратного фильтра CAN "FXX12345678"
-	// Задать значение маски аппаратного фильтра CAN "fXX12345678"
+	// Set hardware CAN filter ID   "FXX12345678"
+	// Set hardware CAN filter mask "fXX12345678"
 
-	// почему-то на первый и второй канал неодинаковое количество фильтров
+	// Note: amount of filters varies between channels
 	enum {
 		ch1filters = 13,
 		ch2filters = 15,
@@ -278,16 +280,16 @@ bool CanHacker::canSetFilter(bool mask)
 	Can::Channel ch = (filterNo < ch1filters) ? Can::CANch1 : Can::CANch2;
 	if (ch == Can::CANch2) filterNo -= ch1filters;
 
-	auto &curFilter = canSettings[ch].fiters[filterNo];
+	auto &curFilter = canSettings[ch].filters[filterNo];
 	if (! mask)
 		curFilter.id = filterVal;
 	else
 		curFilter.mask = filterVal;
 
-	// очередной костыль. Команды приходят в порядке "значение, маска"
+	// Note: commands received in order "ID, MASK"
 	if (mask)
 	{
-		const auto filters = canSettings[ch].fiters;
+		const auto filters = canSettings[ch].filters;
 		const uint32_t filtCount = (ch == Can::CANch1) ? ch1filters : ch2filters;
 
 		Can::Filter filtArr[16]; int outIdx = 0;
@@ -303,6 +305,8 @@ bool CanHacker::canSetFilter(bool mask)
 					filtArr[outIdx++] = Can::Filter::Mask29(id, mask);
 			}
 		}
+		filtArr[outIdx] = Can::Filter::End();
+
 		if (outIdx)
 			CanDrv::setFilter(ch, filtArr);
 		else

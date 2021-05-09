@@ -10,17 +10,22 @@ CppApplication {
         "STM32F10X_CL",
         "STM32F105xC",
 
-
         "BOARD_SIGMA=1", "BOARD_2CAN=2",
         // build for various boards
         "BOARD=1",
+
+        "PROTOCOL_LAWICEL=1",       // commonly used, ascii-based
+        "PROTOCOL_BINARY=2",        // "new" canhacker protocol
+        "PROTOCOL=2",               // current protocol
     ]
 
 
     files: [
-        "Can/can.h",
+        "Can/Can.h",
         "Can/candrv.cpp",
         "Can/candrv.h",
+        "CanHackerBinary.cpp",
+        "CanHackerBinary.h",
         "canhacker.cpp",
         "canhacker.h",
         "system/startup.c",
@@ -38,6 +43,7 @@ CppApplication {
         "main.cpp",
         "timer.cpp",
         "Pins.h",
+        "system/stm32F105xC.ld",
     ]
 
 
@@ -51,10 +57,10 @@ CppApplication {
     ]
 
 
-    Group {
-        name: "Linker Script"
+    // linker script
+    FileTagger {
+        patterns: "*.ld"
         fileTags: ["linkerscript"]
-        files: [ "system/stm32F105xC.ld" ]
     }
     cpp.libraryPaths: [ "system" ]
 
@@ -119,14 +125,12 @@ CppApplication {
         condition: qbs.buildVariant === "debug"
         cpp.debugInformation: true
         cpp.defines: outer.concat("DEBUG")
-        //cpp.optimization: "none"
         cpp.driverFlags: outer.concat("-Og")
     }
     Properties {
         condition: qbs.buildVariant === "release"
         cpp.debugInformation: false
-        //cpp.optimization: "small"
-        cpp.driverFlags: outer.concat("-Os")
+        cpp.driverFlags: outer.concat("-O3")
         cpp.driverLinkerFlags: outer.concat("-flto")
     }
 

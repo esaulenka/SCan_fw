@@ -11,7 +11,7 @@ public:
 
     static bool send(const void * data, uint32_t dataLen);
 
-    static uint32_t receive(const void * data, uint32_t bufLen);
+	static uint32_t receive(void *data, uint32_t bufLen);
 
     enum Endpoints {
         epOutCdc = 0x01,

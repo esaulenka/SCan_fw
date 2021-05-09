@@ -4,6 +4,7 @@
 #include "timer.h"
 #include "cdcacm.h"
 #include "canhacker.h"
+#include "CanHackerBinary.h"
 #include "stm32.h"
 #include <cstdio>
 
@@ -31,8 +32,10 @@ int main()
 		if (! canHacker.processPackets() &&
 			! canHacker.processCmd())
 		{
+#if ! defined DEBUG
 			// go to sleep
 			__WFI();
+#endif
 		}
 
 		/*

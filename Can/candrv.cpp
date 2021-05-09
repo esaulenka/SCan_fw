@@ -5,10 +5,10 @@
 #include "stm32.h"
 #include "stm32_rcc.h"
 #include "canhacker.h"
+#include "CanHackerBinary.h"
 
-
-// отключить авторазделение фильтров на первый и второй каналы;
-// для CAN1 используются 13 фильтров, для CAN2 - 15
+// switch off automatic filters distributions between channels
+// CanHacker uses 13 filters for CAN1 and 15 - for CAN2
 #define SPLIT_FILTERS_FOR_CAN_HACKER 13
 
 
@@ -18,7 +18,6 @@ uint32_t CanDrv::init (Can::Channel channel, uint32_t baudrate, bool silent)
 	CAN_TypeDef * CANx = id2hw (channel);
 
 	// enable clock, set pin mode
-	// при включении CAN2 надо включать и CAN1
 	if (channel == Can::CANch1)
 	{
 		PinCan1Rx::Mode(INPUTPULLED); PinCan1Rx::PullUp();
@@ -33,6 +32,7 @@ uint32_t CanDrv::init (Can::Channel channel, uint32_t baudrate, bool silent)
 		PinCan2Tx::Mode(ALT_OUTPUT);
 		PinCan2Stdby::Mode(OUTPUT_2MHZ); PinCan2Stdby::On();
 
+		// CAN2 should include CAN1
 		PeriphPwr::Enable (PeriphPwr::PwrCAN1);
 		PeriphPwr::Enable (PeriphPwr::PwrCAN2);
 	}
@@ -43,7 +43,7 @@ uint32_t CanDrv::init (Can::Channel channel, uint32_t baudrate, bool silent)
 	// set initialization mode
 	CANx->MCR = CAN_MCR_INRQ;
 
-	// подождать, пока модуль поменяет режим
+	// wait while mode changes
 	Timer tmr;
 	while (1)
 	{
@@ -70,7 +70,7 @@ uint32_t CanDrv::init (Can::Channel channel, uint32_t baudrate, bool silent)
 		NVIC_EnableIRQ (CAN2_RX0_IRQn);
 
 
-	// выставляем настройки фильтров
+	// setup filters
 
 	if (channel == Can::CANch1)
 	{
@@ -132,21 +132,21 @@ uint32_t CanDrv::setFilter (Can::Channel channel, const Can::Filter *filters)
 
 	CAN_FilterInit = 1;
 
-	uint32_t filter_en_msk = 0;		// биты включения фильтров
-	uint32_t filter_list_msk = 0;	// биты режима фильтров: 1 - список / 0 - маска
+	uint32_t filter_en_msk = 0;		// filter enable reg
+	uint32_t filter_list_msk = 0;	// filter mode reg: 1 - list / 0 - mask
 
-	// заполняем структуру с фильтрами
+	// fill filter registers
 	for (int i = 0; ; i++, filter_offset++)
 	{
-		// биты 31..1, 63..33 - идентификатор
-		// бит 32 - признак списка ID (не маски)
-		// бит 0 - признак наличия самого фильтра
+		// bits 31..1, 63..33 - identeficator
+		// bit 32 - list mode (not mask)
+		// bit 0 - filter presence
 
-		// список закончился
+		// list fully parsed
 		if (! (filters[i].val & 0x01))
 			break;
 
-		// ошибка! закончилось место!!
+		// error! not enought space!
 		if (filter_offset >= 28)
 		{
 			res = 1;
@@ -183,8 +183,8 @@ uint32_t CanDrv::setFilter (Can::Channel channel, const Can::Filter *filters)
 }
 
 
-// отключает шину.
-// ВАЖНО! при отключении CAN1 остановится и CAN2!!
+// turn off bus
+// NOTE! Swithing off CAN1 also rely on CAN2!!
 void CanDrv::deinit (Can::Channel channel)
 {
 	if (channel == Can::CANch1)
@@ -211,21 +211,21 @@ uint32_t CanDrv::send (Can::Channel channel, const Can::Pkt &pkt)
 {
 	CAN_TypeDef * CANx = id2hw (channel);
 
-	// проверяем, есть ли свободные mailbox'ы
+	// check free mailboxes
 	if (! (CANx->TSR & (CAN_TSR_TME0 | CAN_TSR_TME1 | CAN_TSR_TME2)))
 		return 1;
 
-	// получаем номер mailbox'а
+	// get mailbox number
 	const uint32_t mailbox_num = (CANx->TSR >> 24) & 0x03;
 	CAN_TxMailBox_TypeDef * tx = & CANx->sTxMailBox[mailbox_num];
 
-	// заполняем
+	// fill data
 	tx->TDLR =  __UNALIGNED_UINT32_READ(&pkt.data[0]);
 	tx->TDHR =  __UNALIGNED_UINT32_READ(&pkt.data[4]);
 
 	tx->TDTR = pkt.data_len;
 
-	// заполняем id, выставляем флаг на передачу
+	// fill id, turn on transmit
 	uint32_t id = pkt.id;
 	if (id >= 0x800)		// exteneded id
 		id = (id << 3) | CAN_TI0R_IDE;
@@ -260,7 +260,7 @@ Can::Pkt CanDrv::rcvIrq(Can::Channel channel)
 	__UNALIGNED_UINT32_WRITE(&pkt.data[4], rx->RDHR);
 	pkt.data_len = rx->RDTR & 0x0F;
 
-	// осводождаем аппаратное FIFO
+	// free hw FIFO
 	CANx->RF0R = CAN_RF0R_RFOM0;
 
 	return pkt;

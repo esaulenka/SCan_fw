@@ -1,7 +1,7 @@
 #pragma once
 
 #include "stm32.h"
-#include "can.h"
+#include "Can.h"
 
 
 inline constexpr uint32_t can_btr(uint32_t prescaler, uint32_t seg1, uint32_t seg2, uint32_t sync_jump)
@@ -18,8 +18,8 @@ class CanDrv
 {
 
 public:
-	// значения регистра BTR
-/*	enum TCanBaudrate {		// частота APB1 = 9 MHz
+	// BTR register values
+/*	enum TCanBaudrate {		// APB1 freq = 9 MHz
 		Baudrate500	= can_btr(1,  11, 6, 4),
 		Baudrate250	= can_btr(2,  11, 6, 4),
 		Baudrate125	= can_btr(4,  11, 6, 4),
@@ -31,7 +31,7 @@ public:
 		Baudrate15	= can_btr(24, 16, 8, 4),
 		Baudrate10	= can_btr(36, 16, 8, 4),
 	};*/
-	enum TCanBaudrate {		// частота APB1 = 36 MHz
+	enum TCanBaudrate {		// APB1 freq = 36 MHz
 		Baudrate1000	= can_btr(  2, 11, 6, 4),	// 18 tq
 		Baudrate800		= can_btr(  3,  9, 5, 3),	// 15 tq
 		Baudrate500		= can_btr(  4, 11, 6, 4),	// 18 tq
@@ -58,7 +58,6 @@ public:
 	static Can::Pkt rcvIrq (Can::Channel channel);
 
 	static bool isTxEmpty (Can::Channel channel);
-
 
 	static void sleep (Can::Channel channel, bool sleep);
 

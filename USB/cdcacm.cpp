@@ -160,9 +160,9 @@ static const struct usb_config_descriptor config = {
 };
 
 static const char * const usb_strings[] = {
-	"Black Sphere Technologies",
-	"CDC-ACM Demo",
-	"DEMO",
+	"Home hackers International",		// .iManufacturer = 1,
+	"CanHacker",						// .iProduct = 2,
+	"007",								// .iSerialNumber = 3,
 };
 
 // Buffer to be used for control requests.
@@ -327,7 +327,7 @@ bool Usb::send(const void * data, uint32_t dataLen)
 	return false;
 }
 
-uint32_t Usb::receive(const void *data, uint32_t bufLen)
+uint32_t Usb::receive(void *data, uint32_t bufLen)
 {
 	uint32_t dataLen = rxBuf.Avail();
 	dataLen = std::min(dataLen, bufLen);

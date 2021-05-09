@@ -136,7 +136,7 @@ const __vector_table_t __vector_table =
     }
 };
 //------------------------------------------------------------------------------
-__attribute__ ((noreturn))
+//__attribute__ ((noreturn))
 static void default_handler() { for(;;) { } }
 #ifndef NDEBUG
 static void hf_handler()

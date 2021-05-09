@@ -1,6 +1,6 @@
 #pragma once
 #include <cstdint>
-#include "Can/can.h"
+#include "Can/Can.h"
 #include "Buffer.h"
 
 
@@ -54,7 +54,7 @@ private:
 		struct {
 			uint32_t id;
 			uint32_t mask;
-		} fiters[15] = {};
+		} filters[15] = {};
 	} canSettings[2];
 
 
@@ -89,5 +89,6 @@ private:
 
 };
 
-
-extern CanHacker canHacker;
+#if PROTOCOL == PROTOCOL_LAWICEL
+	extern CanHacker canHacker;
+#endif
