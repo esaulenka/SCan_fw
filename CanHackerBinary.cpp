@@ -213,6 +213,7 @@ bool CanHackerBinary::canOpen()
 
 	auto open = [this](Can::Channel ch, CanSettings & sett) {
 		CanDrv::init(ch, sett.baudrate, sett.silent);
+		CanDrv::setFilter(ch, canFilterEverything);
 		sett.open = true;
 	};
 
@@ -344,7 +345,8 @@ bool CanHackerBinary::canSend()
 				(cmd.Data2(3) << 0);
 
 	pkt.data_len = cmd.Data2(4);
-	if ((4 + 1 + pkt.data_len) != cmd.DataLen2())
+	if (pkt.data_len > 8 ||
+		(4 + 1 + pkt.data_len) != cmd.DataLen2())
 		return false;
 	for (int i = 0; i < pkt.data_len; i++)
 		pkt.data[i] = cmd.Data2(5 + i);
@@ -400,6 +402,12 @@ bool CanHackerBinary::processPackets()
 			tx[18] = pkt.data_len;
 			memcpy(tx + 19, pkt.data, pkt.data_len);
 
+#if defined DEBUG
+			DBG("Pkt:");
+			for (auto i = 0u; i < txLen; i++)
+				DBG(" %02X", tx[i]);
+			DBG("\n");
+#endif
 			Usb::send(tx, txLen);
 		}
 
