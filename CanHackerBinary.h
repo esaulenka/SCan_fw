@@ -20,8 +20,9 @@ public:
 
 	bool gateEnabled(Can::Channel sourceCh, uint32_t pktId) const
 	{
-		return canSettings[sourceCh].gate &&
-			   canSettings[sourceCh].gateFilter != pktId;
+		(void)pktId;
+		return canSettings[sourceCh].gate;
+			//&& canSettings[sourceCh].gateFilter != pktId;
 	}
 
 private:
@@ -46,7 +47,7 @@ private:
 		bool open = false;
 		bool silent = false;
 		bool gate = false;
-		uint32_t gateFilter = -1;
+		//uint32_t gateFilter = -1;
 		uint32_t baudrate = 0;
 		struct {
 			bool extid;

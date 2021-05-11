@@ -87,6 +87,8 @@ void CanHackerBinary::parse()
 	case 0xa5:		// startup handshake
 		// << a5 00 a5 00
 		// >> 5a 00 5a 00
+		for (auto & sett : canSettings)
+			sett = CanSettings();	// set initial values
 		send(0x5a, 0x5a, nullptr, 0);
 		break;
 	case 0x01:		// get device type
@@ -127,11 +129,13 @@ void CanHackerBinary::parse()
 	case 0x22:		// clear filter
 		canFilter(false);
 		break;
-	case 0x31:		// set gate
-	case 0x32:
-		// << 32 0e 42 00	24 = gate 1->2, 42 = gate 2->1
-		// >> b2 0e 00 00
-		canGate(cmd.Command() == 0x31);
+	case 0x31:		// gate enable
+		// << 31 0e 42 00	24 = gate 1->2, 42 = gate 2->1
+		// >> b1 0e 00 00
+		canGate(true);
+		break;
+	case 0x32:		// gate disable
+		canGate(false);
 		break;
 	case 0x40:		// transmit packet
 		canSend();
