@@ -390,7 +390,7 @@ bool CanHackerBinary::processPackets()
 			tx[5] = 4 + 4 + 4 + 1 + pkt.data_len;
 			txLen = 6 + tx[5];
 
-			uint32_t timestamp = pkt.timestamp * 1000;	// microseconds
+			uint32_t timestamp = (pkt.timestamp % 100'000) * 1000;	// microseconds, max=99.99sec
 			tx[6] = timestamp >> 24;
 			tx[7] = timestamp >> 16;
 			tx[8] = timestamp >> 8;
