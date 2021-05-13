@@ -123,6 +123,43 @@ inline void initRemap()
 			AFIO_MAPR_CAN2_REMAP;
 }
 
+#elif BOARD == BOARD_CSAT
+
+// USB
+using PinUsbDP		= Pin<'A',12>;
+using PinUsbDM		= Pin<'A',11>;
+using PinUsbVbus	= Pin<'A',9>;
+using PinUsbConnect = DummyPinOn;
+//using PinUsbConnect	= Pin<'A',9>;
+//using PinUsbVbus	= DummyPinOn;
+
+// CAN-bus
+using PinCan1Rx		= Pin<'B',8>;	// remapped
+using PinCan1Tx		= Pin<'B',9>;
+using PinCan1Stdby	= Pin<'B',7>;
+using PinCan2Rx		= Pin<'B',5>;	// remapped
+using PinCan2Tx		= Pin<'B',6>;
+using PinCan2Stdby	= Pin<'B',4>;
+
+using PinCan22en	= Pin<'B',14>;	// "third" channel
+
+
+// LEDs
+using PinLedTx		= Pin<'A',6>;
+using PinLedRx		= Pin<'A',7>;
+
+
+
+inline void initRemap()
+{
+	// use only SWD (not JTAG)
+	// remap CAN1, CAN2
+	AFIO->MAPR =
+			AFIO_MAPR_SWJ_CFG_0 * 2 |
+			AFIO_MAPR_CAN_REMAP_REMAP2 |	// PB8,PB9
+			AFIO_MAPR_CAN2_REMAP;			// PB5,PB6
+}
+
 #endif	// BOARD == xxx
 
 

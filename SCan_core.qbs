@@ -10,7 +10,7 @@ CppApplication {
         "STM32F10X_CL",
         "STM32F105xC",
 
-        "BOARD_SIGMA=1", "BOARD_2CAN=2",
+        "BOARD_SIGMA=1", "BOARD_2CAN=2", "BOARD_CSAT=3",
         // build for various boards
         "BOARD=1",
 

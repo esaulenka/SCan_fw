@@ -1,5 +1,6 @@
 #include "stm32f1xx.h"
 #include "SysClock.h"
+#include "exhandler.h"
 
 #define HSE_STARTUP_TIMEOUT   1024 // Time out for HSE start up. На демоплате получается порядка 100-150 итераций, сделаем c запасом.
 
@@ -62,6 +63,16 @@ static inline void init_clocks ()
 	RCC->CFGR |= 	RCC_CFGR_PLLSRC |			// PLL1 source - PREDIV1
 					RCC_CFGR_PLLMULL9;			// PLL1 multiplier = 9
 
+#elif CLOCK_HSE == MHz(12)		// CSAT board
+
+	// PLL2 off
+	// PREDIV1 configuration: PREDIV1CLK = HSE / 1 = 12 MHz
+	RCC->CFGR2 =	RCC_CFGR2_PREDIV1SRC_HSE |		// PLL1 prediv source = HSE
+					RCC_CFGR2_PREDIV1_DIV1;			// PLL1 divisor = 1
+
+	// PLL1 configuration: PLLCLK = PREDIV1 * 6 = 72 MHz
+	RCC->CFGR |= 	RCC_CFGR_PLLSRC |			// PLL1 source - PREDIV1
+					RCC_CFGR_PLLMULL6;			// PLL1 multiplier = 6
 
 #else // CLOCK_HSE == MHz(xx)
 	#error Unknown PLL configuration!
@@ -106,9 +117,15 @@ static inline void init_prescalers (void)
 
 
 extern "C" int __low_level_init();
+extern "C" __vector_table_t __vector_table;
 
 int __low_level_init()
 {
+#if BOARD == BOARD_CSAT
+	// workaround: set vector table offset
+	SCB->VTOR = (uint32_t)&__vector_table;
+#endif
+
 	// RCC system reset(for debug purpose)
 	// Set HSION bit
 	RCC->CR |= RCC_CR_HSION;

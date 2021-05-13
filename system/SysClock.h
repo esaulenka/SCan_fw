@@ -9,8 +9,14 @@
 
 #define MHz(val)			((val) * 1000 * 1000)
 
-// частота основного кварца
-#define CLOCK_HSE			MHz(16)
+#if BOARD == BOARD_CSAT
+	// частота основного кварца
+	#define CLOCK_HSE			MHz(12)
+#else
+	// частота основного кварца
+	#define CLOCK_HSE			MHz(16)
+#endif
+
 
 // частота ядра
 #define CLOCK_SYSCLK		MHz(72)
