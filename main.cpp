@@ -6,7 +6,7 @@
 #include "canhacker.h"
 #include "CanHackerBinary.h"
 #include "stm32.h"
-#include <cstdio>
+#include "LedBlink.h"
 
 
 extern "C" int main();
@@ -18,6 +18,7 @@ int main()
 
 	Timer::init();
 	Usb::init();
+	LedBlink::init();
 
 	// LIN tests
 //	PinLin1Slp::Mode(OUTPUT_2MHZ);	PinLin1Slp::On();

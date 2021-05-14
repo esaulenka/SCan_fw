@@ -42,37 +42,38 @@
 #endif
 
 #if defined STM32F2XX
-#  include "CMSIS/stm32f2xx.h"
+#  include "stm32f2xx.h"
 #  define STM32TPL_F2xxF4xx
 #elif defined STM32F4XX
-#  include "CMSIS/stm32f4xx.h"
+#  include "stm32f4xx.h"
 #  define STM32TPL_F2xxF4xx
 #elif (defined STM32F40_41xxx) || (defined STM32F427_437xx) || (defined STM32F429_439xx) || (defined STM32F401xx)
 #  define STM32F4XX
-#  include "CMSIS/stm32f4xx.h"
+#  include "stm32f4xx.h"
 #  define STM32TPL_F2xxF4xx
 #elif (defined STM32L051xx) || (defined STM32L052xx) || (defined STM32L053xx) || (defined STM32L061xx) || (defined STM32L062xx) || (defined STM32L063xx)
 #  define STM32TPL_STM32L0XX
-#  include "CMSIS/stm32l0xx.h"
+#  include "stm32l0xx.h"
 #elif (defined STM32L100xB) || (defined STM32L100xBA) || (defined STM32L100xC) || \
     (defined STM32L151xB) || (defined STM32L151xBA) || (defined STM32L151xC) || (defined STM32L151xCA) || (defined STM32L151xD) || (defined STM32L151xDX) || (defined STM32L151xE) || \
     (defined STM32L152xB) || (defined STM32L152xBA) || (defined STM32L152xC) || (defined STM32L152xCA) || (defined STM32L152xD) || (defined STM32L152xDX) || (defined STM32L152xE) || \
     (defined STM32L162xC) || (defined STM32L162xCA) || (defined STM32L162xD) || (defined STM32L162xDX) || (defined STM32L162xE)
 #  define STM32TPL_STM32L1XX
-#  include "CMSIS/stm32l1xx.h"
+#  include "stm32l1xx.h"
 #elif (defined STM32F030x6) || (defined STM32F030x8) || (defined STM32F030xC) || (defined STM32F031x6) || \
     (defined STM32F038xx) || (defined STM32F042x6) || (defined STM32F048x6) || (defined STM32F051x8) || \
     (defined STM32F058xx) || (defined STM32F070x6) || (defined STM32F070xB) || (defined STM32F071xB) || \
     (defined STM32F072xB) || (defined STM32F078xx) || (defined STM32F091xC) || (defined STM32F098xx)
 #  define STM32TPL_STM32F0XX
-#  include "CMSIS/stm32f0xx.h"
+#  include "stm32f0xx.h"
 #else
 #  define STM32TPL_STM32F1XX
 #  include "stm32f1xx.h"
 #endif
 
 
-#if (defined STM32TPL_STM32L0XX) || (defined STM32TPL_STM32L1XX) || (defined STM32TPL_STM32F0XX)
+#if (defined STM32TPL_STM32L0XX) || (defined STM32TPL_STM32L1XX) || (defined STM32TPL_STM32F0XX) || \
+	(defined STM32TPL_STM32F1XX)
 typedef IRQn_Type IRQn;    // in STM32L0xx headers IRQn type was renamed to IRQn_Type.
 #endif
 

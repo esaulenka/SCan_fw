@@ -1,6 +1,7 @@
 #include "CanHackerBinary.h"
 #include "cdcacm.h"
 #include "Can/candrv.h"
+#include "LedBlink.h"
 #include "Debug.h"
 #include <cstring>
 #include <array>
@@ -54,6 +55,8 @@ bool CanHackerBinary::processCmd()
 		cmd.push(rxBuf[i]);
 		if (cmd.complete())
 		{
+			LedBlink::pulseRx();
+
 			parse();
 			cmd.flush();
 		}
@@ -412,6 +415,7 @@ bool CanHackerBinary::processPackets()
 				DBG(" %02X", tx[i]);
 			DBG("\n");
 #endif
+			LedBlink::pulseTx();
 			Usb::send(tx, txLen);
 		}
 

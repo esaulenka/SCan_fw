@@ -26,6 +26,7 @@ CppApplication {
         "Can/candrv.h",
         "CanHackerBinary.cpp",
         "CanHackerBinary.h",
+        "LedBlink.h",
         "canhacker.cpp",
         "canhacker.h",
         "system/startup.c",

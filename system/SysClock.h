@@ -35,9 +35,9 @@
 
 // на таймеры приходит частота в два раза больше
 // частота шины APB1 (TIM2,3,4,5,6,7)
-#define CLOCK_APB1_TIM		(CLOCK_APB1 * 2)
+#define CLOCK_APB1_TIM		((CLOCK_APB1 == CLOCK_AHB) ? CLOCK_APB1 : (CLOCK_APB1 * 2))
 // частота шины APB2 (TIM1)
-#define CLOCK_APB2_TIM		(CLOCK_APB2 * 2)
+#define CLOCK_APB2_TIM		((CLOCK_APB2 == CLOCK_AHB) ? CLOCK_APB2 : (CLOCK_APB2 * 2))
 
 
 

@@ -133,20 +133,30 @@ using PinUsbConnect = DummyPinOn;
 //using PinUsbConnect	= Pin<'A',9>;
 //using PinUsbVbus	= DummyPinOn;
 
-// CAN-bus
+// CAN-bus; TJA1042
 using PinCan1Rx		= Pin<'B',8>;	// remapped
 using PinCan1Tx		= Pin<'B',9>;
-using PinCan1Stdby	= Pin<'B',7>;
+using PinCan1Stdby	= Pin<'B',7, 'L'>;
 using PinCan2Rx		= Pin<'B',5>;	// remapped
 using PinCan2Tx		= Pin<'B',6>;
-using PinCan2Stdby	= Pin<'B',4>;
+using PinCan2Stdby	= Pin<'B',4, 'L'>;
 
-using PinCan22en	= Pin<'B',14>;	// "third" channel
+using PinCan22Rx	= Pin<'B',12>;	// "third" channel
+using PinCan22Tx	= Pin<'B',13>;
+using PinCan22Stdby	= Pin<'B',14, 'L'>;
 
+// LIN; TJA1021
+using PinLin1Tx		= Pin<'A',2>;	// USART2
+using PinLin1Rx		= Pin<'A',3>;
+using PinLin1Slp	= Pin<'A',4>;
+using PinLin2Tx		= Pin<'B',10>;	// USART3
+using PinLin2Rx		= Pin<'B',11>;
+using PinLin2Slp	= Pin<'A',5>;
 
-// LEDs
-using PinLedTx		= Pin<'A',6>;
-using PinLedRx		= Pin<'A',7>;
+// Misc
+using PinButton		= Pin<'A',0, 'L'>;	// active low
+using PinLedTx		= Pin<'A',6, 'L'>;	// TIM3 ch1
+using PinLedRx		= Pin<'A',7, 'L'>;	// TIM3 ch2
 
 
 
