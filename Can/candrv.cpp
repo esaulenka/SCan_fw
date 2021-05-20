@@ -7,10 +7,15 @@
 #include "canhacker.h"
 #include "CanHackerBinary.h"
 
-// switch off automatic filters distributions between channels
-// CanHacker uses 13 filters for CAN1 and 15 - for CAN2
-#define SPLIT_FILTERS_FOR_CAN_HACKER 13
 
+// switch off automatic filters distributions between channels
+#if PROTOCOL == PROTOCOL_LAWICEL
+	// CanHacker uses 13 filters for CAN1 and 15 - for CAN2
+	#define SPLIT_FILTERS_FOR_CAN_HACKER 13
+#elif PROTOCOL == PROTOCOL_BINARY
+	// Modern protocol uses 14 filters for both channels
+	#define SPLIT_FILTERS_FOR_CAN_HACKER 14
+#endif
 
 
 uint32_t CanDrv::init (Can::Channel channel, uint32_t baudrate, bool silent)
@@ -123,12 +128,9 @@ uint32_t CanDrv::setFilter (Can::Channel channel, const Can::Filter *filters)
 	PeriphBit<CAN1_BASE + offsetof(CAN_TypeDef, FMR), 0>		CAN_FilterInit;
 
 	uint32_t res = 0;
-	uint32_t filter_offset;
 
-	if (channel == Can::CANch1)
-		filter_offset = 0;
-	else
-		filter_offset = (CAN1->FMR & CAN_FMR_CAN2SB) >> 8;
+	const uint32_t second_channel_start = (CAN1->FMR & CAN_FMR_CAN2SB) >> 8;
+	uint32_t filter_offset = (channel == Can::CANch2) ? second_channel_start : 0;
 
 	CAN_FilterInit = 1;
 
@@ -165,11 +167,22 @@ uint32_t CanDrv::setFilter (Can::Channel channel, const Can::Filter *filters)
 
 	if (! res)
 	{
+#if not defined SPLIT_FILTERS_FOR_CAN_HACKER
+		// filter regs dynamically allocated
+		uint32_t otherChannelMask = (channel == Can::CANch2) ?
+				((1ul << second_channel_start) - 1) : 0;
+#else
+		uint32_t otherChannelMask = (1ul << second_channel_start) - 1;
+		if (channel != Can::CANch2)
+			otherChannelMask ^= (1ul<<28) - 1;
+#endif
 		// enable filters
-		CAN1->FA1R |= filter_en_msk;
+		CAN1->FA1R = (CAN1->FA1R & otherChannelMask) | filter_en_msk;
 
 		// set list/mask mode
 		CAN1->FM1R = (CAN1->FM1R & ~filter_en_msk) | filter_list_msk;
+
+		//DBG("setFilter(%d) FA1R=%08X other=%08X\n", channel, CAN1->FA1R, otherChannelMask);
 	}
 
 #if not defined SPLIT_FILTERS_FOR_CAN_HACKER

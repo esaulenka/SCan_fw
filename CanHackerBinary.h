@@ -53,7 +53,7 @@ private:
 			bool extid;
 			uint32_t id;
 			uint32_t mask;
-		} filters[15] = {};
+		} filters[14] = {};
 	} canSettings[2];
 
 	struct TCanPktExt : Can::Pkt {
