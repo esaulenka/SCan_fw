@@ -34,6 +34,7 @@ private:
 	void send(uint8_t command)
 	{	send(command, 0, nullptr, 0);	}
 
+	bool setMode();				// set mode (CAN / LIN / CAN+LIN)
 	bool canSetup();			// setup channel
 	bool canOpen();				// open channel
 	bool canFilter(bool en);	// set filter
@@ -74,9 +75,14 @@ private:
 		uint32_t idx = 0;
 		Timer lastRx;
 
+		uint8_t maskCh1 = 0, maskCh2 = 0, maskLin = 0;
+
 		uint8_t Command()	 const { return data[0]; }
 		uint8_t Counter()	 const { return data[1]; }
 		uint8_t Channel()	 const { return data[2]; }
+		uint8_t Channel1()	 const { return data[2] & maskCh1; }
+		uint8_t Channel2()	 const { return data[2] & maskCh2; }
+		uint8_t ChannelLin() const { return data[2] & maskLin; }
 		uint8_t DataLen1()	 const { return data[3]; }
 		uint8_t Data1(int i) const { return data[4 + i]; }
 		uint8_t DataLen2()	 const { return data[5]; }		// send/receive

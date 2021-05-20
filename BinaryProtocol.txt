@@ -22,8 +22,8 @@ READ UP  	01 01 00 04 43 48 33 32
 WRITE DOWN  02 02 00 00  	// get soft version
 READ UP 	02 02 00 06 30 2e 31 2e 31 31
 
-WRITE DOWN  04 03 01 00  	// ???
-READ UP  	84 03 00 00 
+WRITE DOWN  04 03 01 00  	// set mode: 00 - 2CAN+LIN, 01 - 2CAN, 02 - LIN
+READ UP  	84 03 00 00
 
 WRITE DOWN  03 04 00 00  	// ??? get serial
 READ UP  	03 04 00 08 00 00 00 00 00 00 08 05  
@@ -31,9 +31,9 @@ READ UP  	03 04 00 08 00 00 00 00 00 00 08 05
 ///////////////////////////////
 // setup channel 1
 WRITE DOWN  11 05 28 01 00  	// set SJW 00=1, 01=2, 02=3, 03=4
-READ UP  	91 05 00 00 
+READ UP  	91 05 00 00
 WRITE DOWN  11 06 29 01 00  	// d4=01 - set listen mode
-READ UP  	91 06 00 00  
+READ UP  	91 06 00 00
 WRITE DOWN  11 07 20 01 07  	// set speed, 00=10k, 01=20k, 07=100k, 08=125k, 09=250k, 0b=500k, 0c=800k, 0d=1000k
 READ UP  	91 07 00 00
 WRITE DOWN  18 08 20 00			// open channel
@@ -42,18 +42,18 @@ READ UP  	98 08 00 00
 ///////////////////////////////
 // setup channel 2
 WRITE DOWN  11 09 48 01 00  	// set SJW
-READ UP  	91 09 00 00  
+READ UP  	91 09 00 00
 WRITE DOWN  11 0a 49 01 00		// set listen mode  
-READ UP  	91 0a 00 00  
+READ UP  	91 0a 00 00
 WRITE DOWN  11 0b 40 01 07  	// set speed
 READ UP  	91 0b 00 00
 WRITE DOWN  18 0c 40 00 		// open channel
-READ UP  	98 0c 00 00  
+READ UP  	98 0c 00 00
 
 //////////////////////
 // set filters (optional)
 WRITE DOWN	21 0d 20 09 00 00 00 01 23 00 00 07 ff		// CH1, id=123, mask=7ff	
-READ UP		a1 0d 00 00	
+READ UP		a1 0d 00 00
 
 WRITE DOWN	21 0d 41 09 00 00 00 01 23 1f ff ff ff		// CH2 id=123, mask=1fff'ffff
 READ UP		a1 0d 00 00
@@ -71,6 +71,32 @@ d5..d8 - id
 d9..d12 - mask
 
 
+///////////// setup LIN
+WRITE DOWN	11 05 27 01 02		// set CRC mode: 01 - CRC, 02 - ECRC
+READ UP		91 05 00 00
+WRITE DOWN	11 06 20 01 05		// set speed: 00 - 2400, 01 - 9600, 02 - 10400, 03 - 14400, 04 - 15600, 05 - 19200, 06 - 20000, 07 - 38400
+READ UP		91 06 00 00
+WRITE DOWN	18 07 20 00			// open channel
+READ UP		98 07 00 00
+WRITE DOWN	48 08 20 0d 00 00 00 80 08 00 00 00 00 00 00 00 00 // the same in every log
+READ UP		c8 08 00 00
+WRITE DOWN	49 09 20 00			// the same in every log
+READ UP		c9 09 00 00
+
+LIN channel =20 (LIN only mode) =60 (CAN+LIN mode)
+
+
+// LIN filters
+F0 = 33, F1 = 60, F7 = B0
+WRITE DOWN	21 0a 20 09 00 00 00 00 33 00 00 00 00
+READ UP		a1 0a 00 00
+WRITE DOWN	21 0b 20 09 01 00 00 00 60 00 00 00 00
+READ UP		a1 0b 00 00
+WRITE DOWN	21 0c 20 09 07 00 00 00 b0 00 00 00 00
+READ UP		a1 0c 00 00
+the same as CAN filters
+
+
 ////////////// set gate
 WRITE DOWN  32 0d 24 00 		// gate 1->2: cmd=31 - enable, cmd=32 - disable
 READ UP  	b2 0d 00 00
@@ -81,7 +107,7 @@ READ UP  	b2 0e 00 00
 
 WRITE DOWN  19 0f 20 00 	// close channel 
 READ UP  	99 0f 00 00
-WRITE DOWN  19 10 40 00 
+WRITE DOWN  19 10 40 00
 READ UP  	99 10 00 00
 
 WRITE DOWN	0a 11 00 00		// session end ???
@@ -94,8 +120,8 @@ READ UP		40 01 48 00 00 10 00 3e 63 f1 00 00 00 00 00 00 03 33 03 33 22 11
 READ UP		40 02 28 00 00 10 00 3e 63 f5 00 00 00 00 00 00 03 33 03 33 22 11
 time = 0x3e63f1 = 4088817
 
-READ UP		40 03 48 00 00 10 00 46 db e7 00 00 00 00 00 00 03 33 03 33 22 11		
-READ UP		40 04 28 00 00 10 00 46 db eb 00 00 00 00 00 00 03 33 03 33 22 11	
+READ UP		40 03 48 00 00 10 00 46 db e7 00 00 00 00 00 00 03 33 03 33 22 11
+READ UP		40 04 28 00 00 10 00 46 db eb 00 00 00 00 00 00 03 33 03 33 22 11
 time = 0x46dbe7 = 4643815, delta = 554998
 
 receive pkt = id=020 dlc=8 data=01 02 03 04 05 06 07 08
@@ -105,7 +131,7 @@ READ UP		40 01 20 00 00 15 01 b8 c5 0d 00 00 00 00 00 00 00 20 08 01 02 03 04 05
 READ UP		40 02 40 00 00 15 01 b8 c5 10 00 00 00 00 00 00 00 20 08 01 02 03 04 05 06 07 08
 
 receive pkt = id=555 dlc=4 data = 11 22 33 44
-READ UP		40 59 20 00 00 11 01 f8 00 6e 00 00 00 00 00 00 05 55 04 11 22 33 44	
+READ UP		40 59 20 00 00 11 01 f8 00 6e 00 00 00 00 00 00 05 55 04 11 22 33 44
 READ UP		40 5a 40 00 00 11 01 f8 00 71 00 00 00 00 00 00 05 55 04 11 22 33 44
 
 
@@ -123,17 +149,17 @@ d19..dXX - data
 //////////////////////////////////////////////////////////////
              0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16 17 18
 // transmit pkt = CH=2 id=123 dlc=8 data=11 22 33 44 55 66 77 88
-WRITE DOWN	40 0f 40 00 00 0d 00 00 01 23 08 11 22 33 44 55 66 77 88	
-WRITE DOWN	40 10 40 00 00 0d 00 00 01 23 08 11 22 33 44 55 66 77 88	
-WRITE DOWN	40 11 40 00 00 0d 00 00 01 23 08 11 22 33 44 55 66 77 88	
-WRITE DOWN	40 12 40 00 00 0d 00 00 01 23 08 11 22 33 44 55 66 77 88	
-WRITE DOWN	40 13 40 00 00 0d 00 00 01 23 08 11 22 33 44 55 66 77 88	
+WRITE DOWN	40 0f 40 00 00 0d 00 00 01 23 08 11 22 33 44 55 66 77 88
+WRITE DOWN	40 10 40 00 00 0d 00 00 01 23 08 11 22 33 44 55 66 77 88
+WRITE DOWN	40 11 40 00 00 0d 00 00 01 23 08 11 22 33 44 55 66 77 88
+WRITE DOWN	40 12 40 00 00 0d 00 00 01 23 08 11 22 33 44 55 66 77 88
+WRITE DOWN	40 13 40 00 00 0d 00 00 01 23 08 11 22 33 44 55 66 77 88
 
 // transmit pkt = CH=1, id=7FF, dlc=8, flag=RTR
-WRITE DOWN	40 12 24 00 00 05 00 00 07 ff 08	
+WRITE DOWN	40 12 24 00 00 05 00 00 07 ff 08
 
 // transmit pkt = CH=1, id=12345678, dlc=8, data=11 22 33 44 55 66 77 88
-WRITE DOWN	40 0f 28 00 00 0d 12 34 56 78 08 11 22 33 44 55 66 77 88		
+WRITE DOWN	40 0f 28 00 00 0d 12 34 56 78 08 11 22 33 44 55 66 77 88
 
 d2 - 40=ch2; 24=ch1,RTR; 28=ch1,Ext.id
 d3,d4 = 0000 ???
@@ -142,3 +168,25 @@ d6..d9 - pkt id
 d10 - dlc
 d11..dXX - data
 
+
+
+//////////////////////////////////////////////////////////////
+LIN TX id=C4 dlc=4 data=55 15 ED EF
+
+WRITE DOWN	40 0a 20 00 00 09 00 00 00 c4 04 55 15 ed ef
+
+READ UP		40 01 24 00 00 11 00 32 22 ea 00 00 00 f2 00 00 00 c4 04 55 15 ed ef
+READ UP		40 02 24 00 00 11 00 3d e5 7e 00 00 00 f2 00 00 00 c4 04 55 15 ed ef
+READ UP		40 03 24 00 00 11 00 49 3a e6 00 00 00 f2 00 00 00 c4 04 55 15 ed ef
+READ UP		40 04 24 00 00 11 00 50 78 75 00 00 00 f2 00 00 00 c4 04 55 15 ed ef
+READ UP		40 05 24 00 00 11 00 57 62 84 00 00 00 f2 00 00 00 c4 04 55 15 ed ef
+READ UP		40 06 24 00 00 11 00 61 c8 df 00 00 00 f2 00 00 00 c4 04 55 15 ed ef
+
+d2 = ???
+d3,d4 = 0000 ???
+d5 - data length (d6..dXX)
+d6..d9 - timestamp
+d10..d13 = 000000f2 ???
+d14..d17 - pkt id
+d18 - dlc
+d19..dXX - data

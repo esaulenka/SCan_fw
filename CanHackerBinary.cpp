@@ -104,10 +104,8 @@ void CanHackerBinary::parse()
 		// >> 02 02 00 06 30 2e 31 2e 31 31
 		send(0x02, 0, softVersion, sizeof(softVersion)-1);
 		break;
-	case 0x04:		// ???
-		// << 04 03 01 00
-		// >> 84 03 00 00
-		send(0x84);
+	case 0x04:		// set mode: 0 - 2CAN+Lin, 1 - 2CAN, 2 - LIN
+		setMode();
 		break;
 	case 0x03:		// get serial ???
 	{	// << 03 04 00 00
@@ -125,6 +123,16 @@ void CanHackerBinary::parse()
 		// << 18 08 20 00
 		// >> 98 08 00 00
 		canOpen();
+		break;
+	case 0x48:		// LIN unknown setting
+		// << 48 08 20 0d 00 00 00 80 08 00 00 00 00 00 00 00 00
+		// >> c8 08 00 00
+		send(cmd.Command() | 0x80);
+		break;
+	case 0x49:		// LIN unknown setting
+		// << 49 09 20 00
+		// >> c9 09 00 00
+		send(cmd.Command() | 0x80);
 		break;
 	case 0x21:		// set filter
 		canFilter(true);
@@ -159,31 +167,55 @@ void CanHackerBinary::parse()
 	}
 }
 
+bool CanHackerBinary::setMode()
+{
+	// << 04 03 01 00
+	// >> 84 03 00 00
+	switch (cmd.Channel())
+	{
+	case 0:		// 2CAN + LIN
+		cmd.maskCh1 = 0x20;
+		cmd.maskCh2 = 0x40;
+		cmd.maskLin = 0x60;
+		break;
+	case 1:		// 2CAN
+		cmd.maskCh1 = 0x20;
+		cmd.maskCh2 = 0x40;
+		cmd.maskLin = 0x00;
+		break;
+	case 2:		// LIN
+		cmd.maskCh1 = 0x00;
+		cmd.maskCh2 = 0x00;
+		cmd.maskLin = 0x20;
+		break;
+	default:
+		return false;
+	}
+	send(cmd.Command() | 0x80);		// send ack
+	return true;
+}
+
 bool CanHackerBinary::canSetup()
 {
-	auto convertBaudrate = [](uint8_t protSpeed) {
-		switch (protSpeed)
-		{
-		case 0:		return CanDrv::Baudrate10;
-		case 1:		return CanDrv::Baudrate20;
-		case 2:		return CanDrv::Baudrate33_3;
-		case 3:		return CanDrv::Baudrate50;
-		case 4:		return CanDrv::Baudrate62_5;
-		case 5:		return CanDrv::Baudrate83_3;
-		case 6:		return CanDrv::Baudrate95_2;
-		case 7:		return CanDrv::Baudrate100;
-		case 8:		return CanDrv::Baudrate125;
-		case 9:		return CanDrv::Baudrate250;
-		case 10:	return CanDrv::Baudrate400;
-		case 11:	return CanDrv::Baudrate500;
-		case 12:	return CanDrv::Baudrate800;
-		case 13:	return CanDrv::Baudrate1000;
-		default:	return CanDrv::TCanBaudrate(0);
-		}
+	static const uint32_t canBaudrate[] = {
+		CanDrv::Baudrate10,		// 0
+		CanDrv::Baudrate20,		// 1
+		CanDrv::Baudrate33_3,	// 2
+		CanDrv::Baudrate50,		// 3
+		CanDrv::Baudrate62_5,	// 4
+		CanDrv::Baudrate83_3,	// 5
+		CanDrv::Baudrate95_2,	// 6
+		CanDrv::Baudrate100,	// 7
+		CanDrv::Baudrate125,	// 8
+		CanDrv::Baudrate250,	// 9
+		CanDrv::Baudrate400,	// 10
+		CanDrv::Baudrate500,	// 11
+		CanDrv::Baudrate800,	// 12
+		CanDrv::Baudrate1000,	// 13
 	};
 
-	const bool ch1 = cmd.Channel() & 0x20;
-	const bool ch2 = cmd.Channel() & 0x40;
+	const bool ch1 = cmd.Channel1();
+	const bool ch2 = cmd.Channel2();
 	if (!ch1 && !ch2) return false;
 
 	if (cmd.DataLen1() != 1) return false;
@@ -199,8 +231,8 @@ bool CanHackerBinary::canSetup()
 		break;
 	case 0x0:		// set speed
 	{
-		uint32_t baudrate = convertBaudrate(cmd.Data1(0));
-		if (baudrate == 0) return false;
+		if (cmd.Data1(0) >= std::size(canBaudrate)) return false;
+		uint32_t baudrate = canBaudrate[cmd.Data1(0)];
 		if (ch1) canSettings[0].baudrate = baudrate;
 		if (ch2) canSettings[1].baudrate = baudrate;
 		break;
@@ -214,8 +246,8 @@ bool CanHackerBinary::canSetup()
 
 bool CanHackerBinary::canOpen()
 {
-	const bool ch1 = cmd.Channel() & 0x20;
-	const bool ch2 = cmd.Channel() & 0x40;
+	const bool ch1 = cmd.Channel1();
+	const bool ch2 = cmd.Channel2();
 	if (!ch1 && !ch2) return false;
 
 	auto open = [this](Can::Channel ch, CanSettings & sett) {
@@ -233,8 +265,8 @@ bool CanHackerBinary::canOpen()
 
 bool CanHackerBinary::canFilter(bool enable)
 {
-	const bool ch1 = cmd.Channel() & 0x20;
-	const bool ch2 = cmd.Channel() & 0x40;
+	const bool ch1 = cmd.Channel1();
+	const bool ch2 = cmd.Channel2();
 	if (!ch1 && !ch2) return false;
 
 	// << 21 0d 20 09  00  00 00 01 23  00 00 07 ff // CH1, idx=0, id=123, mask=7ff
@@ -244,8 +276,8 @@ bool CanHackerBinary::canFilter(bool enable)
 	if (cmd.DataLen1() !=
 			(enable ? 9 : 1)) return false;
 
-	bool extId = cmd.Channel() & 0x01;
-	uint8_t filterNo = cmd.Data1(0);
+	const bool extId = cmd.Channel() & 0x01;
+	const uint8_t filterNo = cmd.Data1(0);
 
 	uint32_t id = 0, mask = 0;
 	if (enable)
@@ -267,9 +299,9 @@ bool CanHackerBinary::canFilter(bool enable)
 	{
 		Can::Filter filtArr[16]; int outIdx = 0;
 
-		for (auto & protFlt : sett.filters)
+		for (const auto & protFlt : sett.filters)
 		{
-			if (protFlt.id && protFlt.mask)
+			if (protFlt.mask)
 			{
 				if (! protFlt.extid)
 					filtArr[outIdx++] = Can::Filter::Mask11(protFlt.id, protFlt.mask);
@@ -303,8 +335,8 @@ bool CanHackerBinary::canFilter(bool enable)
 
 bool CanHackerBinary::canGate(bool en)
 {
-	const bool ch1 = cmd.Channel() & 0x20;
-	const bool ch2 = cmd.Channel() & 0x40;
+	const bool ch1 = cmd.Channel1();
+	const bool ch2 = cmd.Channel2();
 	if (!ch1 && !ch2) return false;
 
 	if (ch1) canSettings[0].gate = en;
@@ -316,8 +348,8 @@ bool CanHackerBinary::canGate(bool en)
 
 bool CanHackerBinary::canClose()
 {
-	const bool ch1 = cmd.Channel() & 0x20;
-	const bool ch2 = cmd.Channel() & 0x40;
+	const bool ch1 = cmd.Channel1();
+	const bool ch2 = cmd.Channel2();
 	if (!ch1 && !ch2) return false;
 
 	bool & ch1open = canSettings[0].open;
@@ -338,8 +370,8 @@ bool CanHackerBinary::canClose()
 bool CanHackerBinary::canSend()
 {
 	// 40 0f 40 00 00 0d 00 00 01 23 08 11 22 33 44 55 66 77 88
-	const bool ch1 = cmd.Channel() & 0x20;
-	const bool ch2 = cmd.Channel() & 0x40;
+	const bool ch1 = cmd.Channel1();
+	const bool ch2 = cmd.Channel2();
 	if (!ch1 && !ch2) return false;
 
 //	const bool rtr = cmd.Channel() & 0x04;
