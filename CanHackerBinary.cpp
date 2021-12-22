@@ -2,13 +2,17 @@
 #include "cdcacm.h"
 #include "Can/candrv.h"
 #include "LedBlink.h"
+#include "CHLic.h"
 #include "Debug.h"
 #include <cstring>
 #include <array>
 
 
-static const uint8_t deviceType[] = "CH32";
-static const uint8_t softVersion[] = "0.1.11";
+//static const uint8_t deviceType[] = "CH32";		// cmd 0x01
+static const uint8_t deviceType[] = "CH-3.2";		// cmd 0x01
+static const uint8_t softVersion[] = "0.1.21";		// cmd 0x02
+static const uint8_t deviceFeatures[8] = { 0,0,0,0,0,0,0x08,0x05 };
+
 
 
 #if PROTOCOL == PROTOCOL_BINARY
@@ -104,16 +108,31 @@ void CanHackerBinary::parse()
 		// >> 02 02 00 06 30 2e 31 2e 31 31
 		send(0x02, 0, softVersion, sizeof(softVersion)-1);
 		break;
-	case 0x04:		// set mode: 0 - 2CAN+Lin, 1 - 2CAN, 2 - LIN
-		setMode();
-		break;
 	case 0x03:		// get serial ???
 	{	// << 03 04 00 00
 		// >> 03 04 00 08 00 00 00 00 00 00 08 05
-		uint8_t buf[] = {0x00,0x00,0x00,0x00,0x00,0x00,0x08,0x05};
-		send(0x03, 0, buf, sizeof(buf));
+		static const uint8_t serial[] = {0x00,0x00,0x00,0x00,0x00,0x00,0x08,0x05};
+		send(0x03, 0, serial, sizeof(serial));
 		break;
 	}
+	case 0x04:		// set mode: 0 - 2CAN+Lin, 1 - 2CAN, 2 - LIN
+		setMode();
+		break;
+	case 0x05:		// startup unknown
+	{	// << 05 01 00 00
+		// >> 05 01 00 01 11
+		uint8_t tmp = 0x11;
+		send(0x05, 0, &tmp, sizeof(tmp));
+		break;
+	}
+	case 0x08:		// unknown
+		// << 08 06 00 00
+		// >> 88 06 00 00
+		send(0x88);
+		break;
+	case 0x0F:		// check license
+		checkLicense();
+		break;
 	case 0x11:		// setup channel
 		// << 11 07 20 01 07
 		// >> 91 07 00 00
@@ -214,9 +233,10 @@ bool CanHackerBinary::canSetup()
 		CanDrv::Baudrate1000,	// 13
 	};
 
-	const bool ch1 = cmd.Channel1();
-	const bool ch2 = cmd.Channel2();
-	if (!ch1 && !ch2) return false;
+	const bool ch1 = cmd.ChCan1();
+	const bool ch2 = cmd.ChCan2();
+	const bool lin = cmd.ChLin();
+	if (!ch1 && !ch2 && !lin) return false;
 
 	if (cmd.DataLen1() != 1) return false;
 
@@ -230,13 +250,21 @@ bool CanHackerBinary::canSetup()
 		if (ch2) canSettings[1].silent = cmd.Data1(0);
 		break;
 	case 0x0:		// set speed
-	{
-		if (cmd.Data1(0) >= std::size(canBaudrate)) return false;
-		uint32_t baudrate = canBaudrate[cmd.Data1(0)];
-		if (ch1) canSettings[0].baudrate = baudrate;
-		if (ch2) canSettings[1].baudrate = baudrate;
+		if (ch1 || ch2)
+		{
+			if (cmd.Data1(0) >= std::size(canBaudrate)) return false;
+			uint32_t baudrate = canBaudrate[cmd.Data1(0)];
+			if (ch1) canSettings[0].baudrate = baudrate;
+			if (ch2) canSettings[1].baudrate = baudrate;
+		}
+		if (lin)
+		{
+			// TODO Lin speed
+		}
 		break;
-	}
+	case 0x7:		// LIN checksum
+		// TODO: 01 - crc, 02 - ecrc
+		break;
 	default: return false;
 	}
 
@@ -246,8 +274,8 @@ bool CanHackerBinary::canSetup()
 
 bool CanHackerBinary::canOpen()
 {
-	const bool ch1 = cmd.Channel1();
-	const bool ch2 = cmd.Channel2();
+	const bool ch1 = cmd.ChCan1();
+	const bool ch2 = cmd.ChCan2();
 	if (!ch1 && !ch2) return false;
 
 	auto open = [this](Can::Channel ch, CanSettings & sett) {
@@ -265,8 +293,8 @@ bool CanHackerBinary::canOpen()
 
 bool CanHackerBinary::canFilter(bool enable)
 {
-	const bool ch1 = cmd.Channel1();
-	const bool ch2 = cmd.Channel2();
+	const bool ch1 = cmd.ChCan1();
+	const bool ch2 = cmd.ChCan2();
 	if (!ch1 && !ch2) return false;
 
 	// << 21 0d 20 09  00  00 00 01 23  00 00 07 ff // CH1, idx=0, id=123, mask=7ff
@@ -335,8 +363,8 @@ bool CanHackerBinary::canFilter(bool enable)
 
 bool CanHackerBinary::canGate(bool en)
 {
-	const bool ch1 = cmd.Channel1();
-	const bool ch2 = cmd.Channel2();
+	const bool ch1 = cmd.ChCan1();
+	const bool ch2 = cmd.ChCan2();
 	if (!ch1 && !ch2) return false;
 
 	if (ch1) canSettings[0].gate = en;
@@ -348,8 +376,8 @@ bool CanHackerBinary::canGate(bool en)
 
 bool CanHackerBinary::canClose()
 {
-	const bool ch1 = cmd.Channel1();
-	const bool ch2 = cmd.Channel2();
+	const bool ch1 = cmd.ChCan1();
+	const bool ch2 = cmd.ChCan2();
 	if (!ch1 && !ch2) return false;
 
 	bool & ch1open = canSettings[0].open;
@@ -370,8 +398,8 @@ bool CanHackerBinary::canClose()
 bool CanHackerBinary::canSend()
 {
 	// 40 0f 40 00 00 0d 00 00 01 23 08 11 22 33 44 55 66 77 88
-	const bool ch1 = cmd.Channel1();
-	const bool ch2 = cmd.Channel2();
+	const bool ch1 = cmd.ChCan1();
+	const bool ch2 = cmd.ChCan2();
 	if (!ch1 && !ch2) return false;
 
 //	const bool rtr = cmd.Channel() & 0x04;
@@ -485,4 +513,23 @@ void CanHackerBinary::send(uint8_t command, uint8_t channel, const void *buf, st
 #endif
 
 	Usb::send(tx, txLen);
+}
+
+bool CanHackerBinary::checkLicense()
+{
+	// << 0f 0f 00 10 5c 69 d7 57 57 a9 2a 9e b0 53 89 f5 1d b4 3f 93
+	// >> 0f 0f 00 08 85 df c0 b7 94 18 42 35
+	if (cmd.DataLen1() != 16) return false;
+
+	uint8_t sessionKey[16];
+	for (int i = 0; i < 16; i++)
+		sessionKey[i] = cmd.Data1(i);
+	CHLicense::Decrypt(CHLicense::FixedKey, sessionKey, 16);
+
+	uint8_t answer[8];
+	memcpy(answer, deviceFeatures, sizeof(answer));
+	CHLicense::Encrypt((uint32_t*)sessionKey, answer, sizeof(answer));
+
+	send(0x0F, 0, answer, sizeof(answer));
+	return true;
 }

@@ -21,6 +21,7 @@ CppApplication {
 
 
     files: [
+        "CHLic.h",
         "Can/Can.h",
         "Can/candrv.cpp",
         "Can/candrv.h",

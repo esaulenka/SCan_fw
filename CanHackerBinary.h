@@ -42,6 +42,8 @@ private:
 	bool canSend();				// transmit packet
 	bool canClose();			// close channel
 
+	bool checkLicense();
+
 	void applyFilters(Can::Channel ch);
 
 	struct CanSettings {
@@ -80,18 +82,19 @@ private:
 		uint8_t Command()	 const { return data[0]; }
 		uint8_t Counter()	 const { return data[1]; }
 		uint8_t Channel()	 const { return data[2]; }
-		uint8_t Channel1()	 const { return data[2] & maskCh1; }
-		uint8_t Channel2()	 const { return data[2] & maskCh2; }
-		uint8_t ChannelLin() const { return data[2] & maskLin; }
 		uint8_t DataLen1()	 const { return data[3]; }
 		uint8_t Data1(int i) const { return data[4 + i]; }
 		uint8_t DataLen2()	 const { return data[5]; }		// send/receive
 		uint8_t Data2(int i) const { return data[6 + i]; }	// send/receive
 
+		bool ChCan1() const { return maskCh1 && (data[2] & maskCh1) == maskCh1; }
+		bool ChCan2() const { return maskCh2 && (data[2] & maskCh2) == maskCh2; }
+		bool ChLin()  const { return maskLin && (data[2] & maskLin) == maskLin; }
+
 		const uint8_t & operator[](std::size_t i) const
 		{	return data[i]; }
 
-		void push(char b) {
+		void push(uint8_t b) {
 			data[idx++] = b;
 			idx %= sizeof(data);
 		}
