@@ -421,13 +421,13 @@ void CanHacker::testPin()
 	if (port < 'A' || port > 'D') return;
 	if (pin < 0 || pin > 15) return;
 
-	setMode(port, pin, 1);	// output
+	TestPins::setMode(port, pin, 1);	// output
 	for (int i = 0; i < 100; i++)
 	{
-		setOut(port, pin, i & 1);
+		TestPins::setOut(port, pin, i & 1);
 		Timer::delay(50);
 	}
-	setMode(port, pin, 4);	// input, nopull
+	TestPins::setMode(port, pin, 4);	// input, nopull
 
 	Usb::send("done\r\n", 6);
 

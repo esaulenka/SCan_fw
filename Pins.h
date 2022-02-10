@@ -170,8 +170,39 @@ inline void initRemap()
 			AFIO_MAPR_CAN2_REMAP;			// PB5,PB6
 }
 
+#elif BOARD == BOARD_2CAN30
+
+// USB
+using PinUsbDP		= Pin<'A',12>;
+using PinUsbDM		= Pin<'A',11>;
+using PinUsbVbus	= Pin<'A',9>;
+using PinUsbConnect = Pin<'B',5>;
+
+// CAN-bus; TJA1048
+using PinCan1Rx		= Pin<'B',8>;	// remapped
+using PinCan1Tx		= Pin<'B',9>;
+using PinCan1Stdby	= Pin<'B',7>;
+using PinCan2Rx		= Pin<'B',12>;
+using PinCan2Tx		= Pin<'B',13>;
+using PinCan2Stdby	= Pin<'B',11>;
+
+// Misc
+using PinButton		= Pin<'B',14,'L'>;	// active low
+
+
+inline void initRemap()
+{
+	// use only SWD (not JTAG)
+	// remap CAN1
+	AFIO->MAPR =
+			AFIO_MAPR_SWJ_CFG_0 * 2 |
+			AFIO_MAPR_CAN_REMAP_0*2;
+}
+
 #endif	// BOARD == xxx
 
+
+namespace TestPins {
 
 inline void setMode(char port, int pin, int mode)
 {
@@ -188,3 +219,4 @@ inline void setOut(char port, int pin, int on)
 	else	gpio->BRR = 1<<pin;
 }
 
+};
