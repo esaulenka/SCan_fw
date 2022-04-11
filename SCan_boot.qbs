@@ -9,6 +9,13 @@ CppApplication {
     cpp.defines: [
         "STM32F10X_CL",
         "STM32F105xC",
+
+        "BOARD_SIGMA=1",    // Sigma 10 module
+        "BOARD_2CAN=2",     // Ancient 2CAN board
+        "BOARD_CSAT=3",     // Custom CS device
+        "BOARD_2CAN30=4",   // 2CAN 30 module
+        // build for various boards
+        "BOARD=2",
     ]
 
 
