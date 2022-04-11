@@ -10,15 +10,15 @@ private:
 	using T_Timer = uint32_t;
 
 	// incremented every 1 ms
-        static volatile T_Timer _counter;
+	static volatile T_Timer _counter;
 	friend void SysTick_Handler();
 
-        T_Timer _tmr;
+	T_Timer _tmr;
 public:
 	Timer()
 	{	_tmr = _counter;		}
 
-        inline void restart ()
+	inline void restart ()
 	{	_tmr = _counter;		}
 
 	inline T_Timer value () const
@@ -39,7 +39,7 @@ public:
 	static T_Timer counter()
 	{	return _counter;	}
 
-        static void init();
+	static void init();
 
 };
 

@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include "Can/Can.h"
+#include "Lin/LinPkt.h"
 #include "Buffer.h"
 #include "timer.h"
 
@@ -15,8 +16,16 @@ public:
 	bool processPackets();
 
 
-	// вызывается из прерывания CAN
-	void packetReceived(Can::Channel channel, const Can::Pkt & packet);
+	// IRQ can packet received
+	void packetReceived(Can::Channel ch, const Can::Pkt & packet) {
+		if (canSettings[ch].open)
+			canPkt[ch].Put(TCanPktExt(packet, Timer::counter()));
+	}
+	// IRQ lin packet received
+	void packetReceived(const Lin::Pkt & packet) {
+		if (linSettings.open)
+			linPkt.Put(TLinPktExt(packet, Timer::counter()));
+	}
 
 	bool gateEnabled(Can::Channel sourceCh, uint32_t pktId) const
 	{
@@ -59,6 +68,13 @@ private:
 		} filters[14] = {};
 	} canSettings[2];
 
+	struct LinSettings {
+		bool open = false;
+		uint32_t baudrate = 0;
+		bool extCrc = false;
+
+	} linSettings;
+
 	struct TCanPktExt : Can::Pkt {
 		TCanPktExt() {}
 		TCanPktExt(const Can::Pkt& pkt, uint32_t timestamp=0):
@@ -66,10 +82,22 @@ private:
 
 		uint32_t timestamp;
 	};
+	struct TLinPktExt : Lin::Pkt {
+		TLinPktExt() {}
+		TLinPktExt(const Lin::Pkt& pkt, uint32_t timestamp=0):
+			Lin::Pkt(pkt), timestamp(timestamp) {}
+
+		uint32_t timestamp;
+	};
 
 	CircularBuffer<TCanPktExt, 32> canPkt[2];
+	CircularBuffer<TLinPktExt, 16> linPkt;
 
-	static const Can::Filter canFilterEverything[];
+	static constexpr Can::Filter canFilterEverything[] = {
+			Can::Filter::Mask11 (0,0),
+			Can::Filter::Mask29 (0,0),
+			Can::Filter::End()	// end of filters mask
+	};
 
 
 	struct Cmd {
@@ -87,9 +115,9 @@ private:
 		uint8_t DataLen2()	 const { return data[5]; }		// send/receive
 		uint8_t Data2(int i) const { return data[6 + i]; }	// send/receive
 
-		bool ChCan1() const { return maskCh1 && (data[2] & maskCh1) == maskCh1; }
-		bool ChCan2() const { return maskCh2 && (data[2] & maskCh2) == maskCh2; }
-		bool ChLin()  const { return maskLin && (data[2] & maskLin) == maskLin; }
+		bool ChCan1() const { return (data[2] & 0xF0) == maskCh1; }
+		bool ChCan2() const { return (data[2] & 0xF0) == maskCh2; }
+		bool ChLin()  const { return (data[2] & 0xF0) == maskLin; }
 
 		const uint8_t & operator[](std::size_t i) const
 		{	return data[i]; }

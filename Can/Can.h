@@ -13,9 +13,9 @@ public:
 
 	struct Pkt
 	{
-		uint32_t	id;
-		uint8_t		data[8];
-		uint8_t		data_len;
+		uint32_t	id {};
+		uint8_t		data[8] {};
+		uint8_t		data_len {};
 
 		Pkt()	{ }
 

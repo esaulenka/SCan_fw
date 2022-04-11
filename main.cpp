@@ -7,6 +7,7 @@
 #include "CanHackerBinary.h"
 #include "stm32.h"
 #include "LedBlink.h"
+#include "Lin/LinBus.h"
 
 
 extern "C" int main();
@@ -38,6 +39,10 @@ int main()
 			__WFI();
 #endif
 		}
+
+		linBus1.checkTimeout();
+		linBus2.checkTimeout();
+
 
 		/*
 		auto checkPort = [](uint16_t &oldVal, uint16_t newVal, const char* label) {

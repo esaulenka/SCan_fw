@@ -15,7 +15,7 @@ CppApplication {
         "BOARD_CSAT=3",     // Custom CS device
         "BOARD_2CAN30=4",   // 2CAN 30 module
         // build for various boards
-        "BOARD=4",
+        "BOARD=1",
 
         "PROTOCOL_LAWICEL=1",       // commonly used, ascii-based
         "PROTOCOL_BINARY=2",        // "new" canhacker protocol
@@ -31,6 +31,11 @@ CppApplication {
         "CanHackerBinary.cpp",
         "CanHackerBinary.h",
         "LedBlink.h",
+        "Lin/LinBus.cpp",
+        "Lin/LinBus.h",
+        "Lin/LinDrv.cpp",
+        "Lin/LinDrv.h",
+        "Lin/LinPkt.h",
         "canhacker.cpp",
         "canhacker.h",
         "system/startup.c",

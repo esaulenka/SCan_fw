@@ -1,6 +1,7 @@
 #include "CanHackerBinary.h"
 #include "cdcacm.h"
 #include "Can/candrv.h"
+#include "Lin/LinBus.h"
 #include "LedBlink.h"
 #include "CHLic.h"
 #include "Debug.h"
@@ -20,21 +21,8 @@ CanHackerBinary canHacker;
 #endif
 
 
-// can filters
-const Can::Filter CanHackerBinary::canFilterEverything[] = {
-		Can::Filter::Mask11 (0,0),
-		Can::Filter::Mask29 (0,0),
-		Can::Filter::End()	// end of filters mask
-};
 
-void CanHackerBinary::packetReceived(Can::Channel channel, const Can::Pkt &packet)
-{
-	if (canSettings[channel].open)
-	{
-		TCanPktExt pktExt (packet, Timer::counter());
-		canPkt[channel].Put(pktExt);
-	}
-}
+
 
 bool CanHackerBinary::processCmd()
 {
@@ -96,6 +84,7 @@ void CanHackerBinary::parse()
 		// >> 5a 00 5a 00
 		for (auto & sett : canSettings)
 			sett = CanSettings();	// set initial values
+		linSettings = LinSettings();
 		send(0x5a, 0x5a, nullptr, 0);
 		break;
 	case 0x01:		// get device type
@@ -108,11 +97,10 @@ void CanHackerBinary::parse()
 		// >> 02 02 00 06 30 2e 31 2e 31 31
 		send(0x02, 0, softVersion, sizeof(softVersion)-1);
 		break;
-	case 0x03:		// get serial ???
+	case 0x03:		// get features
 	{	// << 03 04 00 00
 		// >> 03 04 00 08 00 00 00 00 00 00 08 05
-		static const uint8_t serial[] = {0x00,0x00,0x00,0x00,0x00,0x00,0x08,0x05};
-		send(0x03, 0, serial, sizeof(serial));
+		send(0x03, 0, deviceFeatures, sizeof(deviceFeatures));
 		break;
 	}
 	case 0x04:		// set mode: 0 - 2CAN+Lin, 1 - 2CAN, 2 - LIN
@@ -143,14 +131,18 @@ void CanHackerBinary::parse()
 		// >> 98 08 00 00
 		canOpen();
 		break;
-	case 0x48:		// LIN unknown setting
+	case 0x48:		// LIN slave: set data
 		// << 48 08 20 0d 00 00 00 80 08 00 00 00 00 00 00 00 00
 		// >> c8 08 00 00
+		// << 48 14 60 08 00 00 00 11 03 aa bb cc - pkt: id=11, data=aa bb cc
+		// TODO LIN slave
 		send(cmd.Command() | 0x80);
 		break;
-	case 0x49:		// LIN unknown setting
-		// << 49 09 20 00
+	case 0x49:		// LIN slave: enable response
+		// << 49 09 20 00 - disable
 		// >> c9 09 00 00
+		// << 49 09 21 00 - enable
+		// TODO LIN slave
 		send(cmd.Command() | 0x80);
 		break;
 	case 0x21:		// set filter
@@ -232,6 +224,16 @@ bool CanHackerBinary::canSetup()
 		CanDrv::Baudrate800,	// 12
 		CanDrv::Baudrate1000,	// 13
 	};
+	static const uint16_t linBaudrate[] = {
+		2400,		// 0
+		9600,		// 1
+		10400,		// 2
+		14400,		// 3
+		15600,		// 4
+		19200,		// 5
+		20000,		// 6
+		38400,		// 7
+	};
 
 	const bool ch1 = cmd.ChCan1();
 	const bool ch2 = cmd.ChCan2();
@@ -259,11 +261,13 @@ bool CanHackerBinary::canSetup()
 		}
 		if (lin)
 		{
-			// TODO Lin speed
+			if (cmd.Data1(0) >= std::size(linBaudrate)) return false;
+			linSettings.baudrate = linBaudrate[cmd.Data1(0)];
 		}
 		break;
 	case 0x7:		// LIN checksum
-		// TODO: 01 - crc, 02 - ecrc
+		// 01 - crc, 02 - ecrc
+		linSettings.extCrc = cmd.Data1(0) == 0x02;
 		break;
 	default: return false;
 	}
@@ -276,7 +280,8 @@ bool CanHackerBinary::canOpen()
 {
 	const bool ch1 = cmd.ChCan1();
 	const bool ch2 = cmd.ChCan2();
-	if (!ch1 && !ch2) return false;
+	const bool lin = cmd.ChLin();
+	if (!ch1 && !ch2 && !lin) return false;
 
 	auto open = [this](Can::Channel ch, CanSettings & sett) {
 		CanDrv::init(ch, sett.baudrate, sett.silent);
@@ -286,6 +291,11 @@ bool CanHackerBinary::canOpen()
 
 	if (ch1) open(Can::CANch1, canSettings[0]);
 	if (ch2) open(Can::CANch2, canSettings[1]);
+	if (lin)
+	{
+		linBus1.init(linSettings.baudrate);
+		linSettings.open = true;
+	}
 
 	send(cmd.Command() | 0x80);		// send ack
 	return true;
@@ -378,18 +388,27 @@ bool CanHackerBinary::canClose()
 {
 	const bool ch1 = cmd.ChCan1();
 	const bool ch2 = cmd.ChCan2();
-	if (!ch1 && !ch2) return false;
+	const bool lin = cmd.ChLin();
+	if (!ch1 && !ch2 && !lin) return false;
 
-	bool & ch1open = canSettings[0].open;
-	bool & ch2open = canSettings[1].open;
+	if (ch1 || ch2)
+	{
+		bool & ch1open = canSettings[0].open;
+		bool & ch2open = canSettings[1].open;
 
-	if (ch1) ch1open = false;
-	if (ch2) ch2open = false;
+		if (ch1) ch1open = false;
+		if (ch2) ch2open = false;
 
-	if (!ch2open)
-		CanDrv::deinit(Can::CANch2);
-	if (!ch1open && !ch2open)
-		CanDrv::deinit(Can::CANch1);
+		if (!ch2open)
+			CanDrv::deinit(Can::CANch2);
+		if (!ch1open && !ch2open)
+			CanDrv::deinit(Can::CANch1);
+	}
+	if (lin)
+	{
+		linBus1.deinit();
+		linSettings.open = false;
+	}
 
 	send(cmd.Command() | 0x80);		// send ack
 	return true;
@@ -397,87 +416,151 @@ bool CanHackerBinary::canClose()
 
 bool CanHackerBinary::canSend()
 {
+	// CAN ch=2 id=123 len=8 data=11...88
 	// 40 0f 40 00 00 0d 00 00 01 23 08 11 22 33 44 55 66 77 88
+	// LIN id=C0 len=3 data=C4 EE 48
+	// 40 0a 20 00 00 08 00 00 00 c0 03 c4 ee 48
 	const bool ch1 = cmd.ChCan1();
 	const bool ch2 = cmd.ChCan2();
-	if (!ch1 && !ch2) return false;
+	const bool lin = cmd.ChLin();
 
-//	const bool rtr = cmd.Channel() & 0x04;
-//	const bool extId = cmd.Channel() & 0x08;
+	if (ch1 || ch2)
+	{
+		//const bool rtr = cmd.Channel() & 0x04;
+		//const bool extId = cmd.Channel() & 0x08;
 
-	Can::Pkt pkt;
-	pkt.id =	(cmd.Data2(0) << 24) |
-				(cmd.Data2(1) << 16) |
-				(cmd.Data2(2) << 8) |
-				(cmd.Data2(3) << 0);
+		Can::Pkt pkt;
+		pkt.id =	(cmd.Data2(0) << 24) |
+					(cmd.Data2(1) << 16) |
+					(cmd.Data2(2) << 8) |
+					(cmd.Data2(3) << 0);
 
-	pkt.data_len = cmd.Data2(4);
-	if (pkt.data_len > 8 ||
-		(4 + 1 + pkt.data_len) != cmd.DataLen2())
-		return false;
-	for (int i = 0; i < pkt.data_len; i++)
-		pkt.data[i] = cmd.Data2(5 + i);
+		pkt.data_len = cmd.Data2(4);
+		if (pkt.data_len > std::size(pkt.data) ||
+			(4 + 1 + pkt.data_len) != cmd.DataLen2())
+			return false;
+		for (int i = 0; i < pkt.data_len; i++)
+			pkt.data[i] = cmd.Data2(5 + i);
 
-	if (ch1 && canSettings[0].open)
-		CanDrv::send(Can::CANch1, pkt);
-	if (ch2 && canSettings[1].open)
-		CanDrv::send(Can::CANch2, pkt);
+		if (ch1 && canSettings[0].open)
+			CanDrv::send(Can::CANch1, pkt);
+		if (ch2 && canSettings[1].open)
+			CanDrv::send(Can::CANch2, pkt);
 
-	return true;
+		return true;
+	}
+
+	if (lin)
+	{
+		Lin::Pkt pkt;
+		pkt.id = cmd.Data2(3);
+
+		pkt.data_len = cmd.Data2(4);
+		if (pkt.data_len > std::size(pkt.data) ||
+			(4 + 1 + pkt.data_len) != cmd.DataLen2())
+			return false;
+
+		for (int i = 0; i < pkt.data_len; i++)
+			pkt.data[i] = cmd.Data2(5 + i);
+
+		// add checksum to data field
+		pkt.addChecksum(linSettings.extCrc);
+
+		if (linSettings.open)
+			linBus1.send(pkt);
+
+		return true;
+	}
+	return false;
 }
 
 bool CanHackerBinary::processPackets()
 {
+	// receive pkt = id=020 dlc=8 data=01 02 03 04 05 06 07 08
+	// 40 01 20 00 00 15 01 b8 c5 0d 00 00 00 00 00 00 00 20 08 01 02 03 04 05 06 07 08
+
+	// L_19200_ECRC_TX_C4_4_5515EDEF
+	// 40 01 24 00 00 11 00 32 22 ea 00 00 00 f2 00 00 00 c4 04 55 15 ed ef
+
+	auto convertAndSend = [this](uint8_t channelFlags, const auto &pkt, uint32_t linChksum=0)
+	{
+		uint8_t tx[64];
+
+		txCounter++;
+		tx[0] = 0x40;
+		tx[1] = txCounter;
+		tx[2] = channelFlags;
+		tx[3] = tx[4] = 0;
+		tx[5] = 4 + 4 + 4 + 1 + pkt.data_len;
+		std::size_t txLen = 6 + tx[5];
+
+		uint32_t timestamp = (pkt.timestamp % 60'000) * 1000;	// microseconds, max=59.9sec
+		tx[6] = timestamp >> 24;
+		tx[7] = timestamp >> 16;
+		tx[8] = timestamp >> 8;
+		tx[9] = timestamp >> 0;
+
+		tx[10] = linChksum >> 24;
+		tx[11] = linChksum >> 16;
+		tx[12] = linChksum >> 8;
+		tx[13] = linChksum >> 0;
+
+		tx[14] = pkt.id >> 24;
+		tx[15] = pkt.id >> 16;
+		tx[16] = pkt.id >> 8;
+		tx[17] = pkt.id >> 0;
+
+		tx[18] = pkt.data_len;
+
+		memcpy(tx + 19, pkt.data, pkt.data_len);
+
+		LedBlink::pulseTx();
+		Usb::send(tx, txLen);
+
+#if defined DEBUG
+		DBG("Pkt:");
+		for (auto i = 0u; i < txLen; i++)
+			DBG(" %02X", tx[i]);
+		DBG("\n");
+#endif
+	};
+
 	bool haveData = false;
 	for (auto ch = 0; ch < 2; ch++)
 		while (canPkt[ch].Avail())
 		{
 			haveData = true;
 			auto pkt = canPkt[ch].Get();
-			uint8_t tx[64];
-			std::size_t txLen;
 
 			const bool id29bit = (pkt.id > 0x7FF);
 			const bool rtr = false;
 
-			// receive pkt = id=020 dlc=8 data=01 02 03 04 05 06 07 08
-			// 40 01 20 00 00 15 01 b8 c5 0d 00 00 00 00 00 00 00 20 08 01 02 03 04 05 06 07 08
-
-			txCounter++;
-			tx[0] = 0x40;
-			tx[1] = txCounter;
-			tx[2] = ((ch == 0) ? 0x20 : 0x40) |
+			const uint8_t channelFlags =
+					((ch == 0) ? cmd.maskCh1 : cmd.maskCh2) |
 					(id29bit ? 0x08 : 0x00) |
 					(rtr ? 0x04 : 0x00);
-			tx[3] = tx[4] = 0;
-			tx[5] = 4 + 4 + 4 + 1 + pkt.data_len;
-			txLen = 6 + tx[5];
 
-			uint32_t timestamp = (pkt.timestamp % 60'000) * 1000;	// microseconds, max=59.9sec
-			tx[6] = timestamp >> 24;
-			tx[7] = timestamp >> 16;
-			tx[8] = timestamp >> 8;
-			tx[9] = timestamp >> 0;
-
-			tx[10] = tx[11] = tx[12] = tx[13] = 0;
-
-			tx[14] = pkt.id >> 24;
-			tx[15] = pkt.id >> 16;
-			tx[16] = pkt.id >> 8;
-			tx[17] = pkt.id >> 0;
-
-			tx[18] = pkt.data_len;
-			memcpy(tx + 19, pkt.data, pkt.data_len);
-
-#if defined DEBUG
-			DBG("Pkt:");
-			for (auto i = 0u; i < txLen; i++)
-				DBG(" %02X", tx[i]);
-			DBG("\n");
-#endif
-			LedBlink::pulseTx();
-			Usb::send(tx, txLen);
+			convertAndSend(channelFlags, pkt);
 		}
+
+	while (linPkt.Avail())
+	{
+		haveData = true;
+		auto pkt = linPkt.Get();
+
+		const uint8_t channelFlags =
+				cmd.maskLin |
+				0x04;	// Lin enhanced checksum ???
+
+		uint8_t chksum = 0;
+		if (pkt.data_len)
+		{
+			chksum = pkt.data[pkt.data_len-1];
+			pkt.data_len--;
+		}
+
+		convertAndSend(channelFlags, pkt, chksum);
+	}
 
 	return haveData;
 }
