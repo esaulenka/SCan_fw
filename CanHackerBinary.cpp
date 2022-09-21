@@ -87,41 +87,47 @@ void CanHackerBinary::parse()
 		linSettings = LinSettings();
 		send(0x5a, 0x5a, nullptr, 0);
 		break;
-	case 0x01:		// get device type
+	case 0x01:		// get hardware code
 		// << 01 01 00 00
 		// >> 01 01 00 04 43 48 33 32
 		send(0x01, 0, deviceType, sizeof(deviceType)-1);
 		break;
-	case 0x02:	  	// get soft version
+	case 0x02:	  	// get firmware version
 		// << 02 02 00 00
 		// >> 02 02 00 06 30 2e 31 2e 31 31
 		send(0x02, 0, softVersion, sizeof(softVersion)-1);
 		break;
-	case 0x03:		// get features
+	case 0x03:		// get serial number
 	{	// << 03 04 00 00
 		// >> 03 04 00 08 00 00 00 00 00 00 08 05
 		send(0x03, 0, deviceFeatures, sizeof(deviceFeatures));
 		break;
 	}
-	case 0x04:		// set mode: 0 - 2CAN+Lin, 1 - 2CAN, 2 - LIN
+	case 0x04:		// set device mode: 0 - 2CAN+Lin, 1 - 2CAN, 2 - LIN
 		setMode();
 		break;
-	case 0x05:		// startup unknown
+	case 0x05:		// get hardware index (??)
 	{	// << 05 01 00 00
 		// >> 05 01 00 01 11
 		uint8_t tmp = 0x11;
 		send(0x05, 0, &tmp, sizeof(tmp));
 		break;
 	}
-	case 0x08:		// unknown
+	case 0x08:		// open device
 		// << 08 06 00 00
 		// >> 88 06 00 00
 		send(0x88);
 		break;
+	case 0x09:		// close device
+		// << 09 12 00 00
+		// >> 89 12 00 00
+		send(0x89);
+		break;
+	//case 0x0A:	// get device load statistics (??)
 	case 0x0F:		// check license
 		checkLicense();
 		break;
-	case 0x11:		// setup channel
+	case 0x11:		// configure channel
 		// << 11 07 20 01 07
 		// >> 91 07 00 00
 		canSetup();
@@ -131,6 +137,30 @@ void CanHackerBinary::parse()
 		// >> 98 08 00 00
 		canOpen();
 		break;
+	case 0x19:		// close channel
+		// << 19 0f 20 00
+		// >> 99 0f 00 00
+		canClose();
+		break;
+	//case 0x1F:	// reset channel
+	case 0x21:		// set filter
+		canFilter(true);
+		break;
+	case 0x22:		// clear filter
+		canFilter(false);
+		break;
+	//case 0x23:	// get filter
+	case 0x31:		// gate enable
+		// << 31 0e 42 00	24 = gate 1->2, 42 = gate 2->1
+		// >> b1 0e 00 00
+		canGate(true);
+		break;
+	case 0x32:		// gate disable
+		canGate(false);
+		break;
+	//case 0x33:	// gate set filter
+	//case 0x34:	// gate remove filter
+	//case 0x35:	// gate remove filters
 	case 0x48:		// LIN slave: set data
 		// << 48 08 20 0d 00 00 00 80 08 00 00 00 00 00 00 00 00
 		// >> c8 08 00 00
@@ -145,27 +175,8 @@ void CanHackerBinary::parse()
 		// TODO LIN slave
 		send(cmd.Command() | 0x80);
 		break;
-	case 0x21:		// set filter
-		canFilter(true);
-		break;
-	case 0x22:		// clear filter
-		canFilter(false);
-		break;
-	case 0x31:		// gate enable
-		// << 31 0e 42 00	24 = gate 1->2, 42 = gate 2->1
-		// >> b1 0e 00 00
-		canGate(true);
-		break;
-	case 0x32:		// gate disable
-		canGate(false);
-		break;
 	case 0x40:		// transmit packet
 		canSend();
-		break;
-	case 0x19:		// close channel
-		// << 19 0f 20 00
-		// >> 99 0f 00 00
-		canClose();
 		break;
 	case 0x0a:		// session end?
 		// << 0a 11 00 00
@@ -244,14 +255,7 @@ bool CanHackerBinary::canSetup()
 
 	switch (cmd.Channel() & 0x0F)
 	{
-	case 0x8:		// set syncronization jump width
-		// SJW = cmd.Data(0) + 1;
-		break;
-	case 0x9:		// listen mode
-		if (ch1) canSettings[0].silent = cmd.Data1(0);
-		if (ch2) canSettings[1].silent = cmd.Data1(0);
-		break;
-	case 0x0:		// set speed
+	case 0x0:		// set speed index
 		if (ch1 || ch2)
 		{
 			if (cmd.Data1(0) >= std::size(canBaudrate)) return false;
@@ -265,10 +269,23 @@ bool CanHackerBinary::canSetup()
 			linSettings.baudrate = linBaudrate[cmd.Data1(0)];
 		}
 		break;
-	case 0x7:		// LIN checksum
+	//case 0x1:		// set FD speed index
+	//case 0x2:		// set manual speed
+	//case 0x3:		// set manual FD speed
+	//case 0x5:		// terminator relay
+	//case 0x6:		// pullup relay
+	case 0x7:		// LIN CRC mode
 		// 01 - crc, 02 - ecrc
 		linSettings.extCrc = cmd.Data1(0) == 0x02;
 		break;
+	case 0x8:		// set syncronization jump width
+		// SJW = cmd.Data(0) + 1;
+		break;
+	case 0x9:		// CAN listen mode
+		if (ch1) canSettings[0].silent = cmd.Data1(0);
+		if (ch2) canSettings[1].silent = cmd.Data1(0);
+		break;
+	//case 0xA:		// Frame format
 	default: return false;
 	}
 
