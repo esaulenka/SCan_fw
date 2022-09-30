@@ -9,7 +9,6 @@
 #include <array>
 
 
-//static const uint8_t deviceType[] = "CH32";		// cmd 0x01
 static const uint8_t deviceType[] = "CH-3.2";		// cmd 0x01
 static const uint8_t softVersion[] = "0.1.21";		// cmd 0x02
 static const uint8_t deviceFeatures[8] = { 0,0,0,0,0,0,0x08,0x05 };
@@ -246,12 +245,25 @@ bool CanHackerBinary::canSetup()
 		38400,		// 7
 	};
 
+	auto parseBaudrate = [](const Cmd & cmd) -> uint32_t {
+		// speed             | presc | seg1  | seg2  | sjw
+		// 500:  11 08 22 08   04 00   0f 00   02 00   01 00
+		// 250:  11 08 22 08   09 00   0d 00   02 00   01 00
+		// 125:  11 08 22 08   12 00   0d 00   02 00   01 00
+		// application uses the same bus speed 36 MHz
+		uint16_t prescaler = cmd.Data1(0) | (cmd.Data1(1) << 8);
+		uint8_t seg1 = cmd.Data1(2);
+		uint8_t seg2 = cmd.Data1(4);
+		uint8_t sjw = cmd.Data1(6);
+		return can_btr(prescaler, seg1, seg2, sjw);
+	};
+
 	const bool ch1 = cmd.ChCan1();
 	const bool ch2 = cmd.ChCan2();
 	const bool lin = cmd.ChLin();
 	if (!ch1 && !ch2 && !lin) return false;
 
-	if (cmd.DataLen1() != 1) return false;
+	if (cmd.DataLen1() < 1) return false;
 
 	switch (cmd.Channel() & 0x0F)
 	{
@@ -270,7 +282,10 @@ bool CanHackerBinary::canSetup()
 		}
 		break;
 	//case 0x1:		// set FD speed index
-	//case 0x2:		// set manual speed
+	case 0x2:		// set manual speed
+		if (ch1) canSettings[0].baudrate = parseBaudrate(cmd);
+		if (ch2) canSettings[1].baudrate = parseBaudrate(cmd);
+		break;
 	//case 0x3:		// set manual FD speed
 	//case 0x5:		// terminator relay
 	//case 0x6:		// pullup relay
