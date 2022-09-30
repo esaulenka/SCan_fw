@@ -199,6 +199,8 @@ inline void initRemap()
 			AFIO_MAPR_CAN_REMAP_0*2;
 }
 
+#else
+	#error undefined BOARD !
 #endif	// BOARD == xxx
 
 

@@ -173,13 +173,13 @@ struct Pin
 	enum { GPIOx_BASE = port_gpio_t<port>::GPIOx_BASE };
 	enum { IDR_BB_ADDR = pPERIPH_BB_BASE + (GPIOx_BASE + offsetof(GPIOxTypeDef, IDR) - pPERIPH_BASE) * 32 + pin_no * 4 };
 	enum { ODR_BB_ADDR = pPERIPH_BB_BASE + (GPIOx_BASE + offsetof(GPIOxTypeDef, ODR) - pPERIPH_BASE) * 32 + pin_no * 4 };
-	static struct
+	static inline struct
 	{
 		GPIOxTypeDef* operator-> () { return (GPIOxTypeDef*)GPIOx_BASE; }
 	}GPIOx;
 
 
-	static struct{
+	static inline struct{
 		uint32_t operator=(uint32_t value){
 			pin_no < 8 ? GPIOx->CRL = value :
 			GPIOx->CRH = value;
