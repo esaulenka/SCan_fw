@@ -15,7 +15,7 @@ CppApplication {
         "BOARD_CSAT=3",     // Custom CS device
         "BOARD_2CAN30=4",   // 2CAN 30 module
         // build for various boards
-        "BOARD=2",
+        "BOARD=1",
     ]
 
 
