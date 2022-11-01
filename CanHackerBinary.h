@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include "cmsis_compiler.h"
 #include "Can/Can.h"
 #include "Lin/LinPkt.h"
 #include "Buffer.h"
@@ -11,7 +12,7 @@ class CanHackerBinary
 public:
 	CanHackerBinary() {}
 
-	// вызывается из main'а
+	// called from main()
 	bool processCmd();
 	bool processPackets();
 
@@ -72,7 +73,6 @@ private:
 		bool open = false;
 		uint32_t baudrate = 0;
 		bool extCrc = false;
-
 	} linSettings;
 
 	struct TCanPktExt : Can::Pkt {
@@ -101,19 +101,21 @@ private:
 
 
 	struct Cmd {
-		uint8_t data[32];
+		uint8_t data[64];
 		uint32_t idx = 0;
 		Timer lastRx;
 
 		uint8_t maskCh1 = 0, maskCh2 = 0, maskLin = 0;
 
-		uint8_t Command()	 const { return data[0]; }
-		uint8_t Counter()	 const { return data[1]; }
-		uint8_t Channel()	 const { return data[2]; }
-		uint8_t DataLen1()	 const { return data[3]; }
-		uint8_t Data1(int i) const { return data[4 + i]; }
-		uint8_t DataLen2()	 const { return data[5]; }		// send/receive
-		uint8_t Data2(int i) const { return data[6 + i]; }	// send/receive
+		uint8_t Command()		const { return data[0]; }
+		uint8_t Counter()		const { return data[1]; }
+		uint8_t Channel()		const { return data[2]; }
+		uint8_t DataLen1()		const { return data[3]; }
+		uint8_t Data1(int i)	const { return data[4 + i]; }
+		uint32_t Data1dw(int i)	const { return __UNALIGNED_UINT32(data + 4 + i*4); }
+		uint8_t DataLen2()		const { return data[4]; }		// send/receive
+		uint8_t Data2(int i)	const { return data[6 + i]; }	// send/receive
+		uint32_t Data2dw(int i)	const { return __UNALIGNED_UINT32(data + 6 + i*4); }	// send/receive
 
 		bool ChCan1() const { return (data[2] & 0xF0) == maskCh1; }
 		bool ChCan2() const { return (data[2] & 0xF0) == maskCh2; }
