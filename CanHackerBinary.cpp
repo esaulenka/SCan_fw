@@ -521,7 +521,7 @@ bool CanHackerBinary::canSend()
 		Lin::Pkt pkt;
 		pkt.id = cmd.Data2dw(1);
 
-		pkt.data_len = cmd.Data2(10);
+		pkt.data_len = cmd.Data2(8);
 		if (pkt.data_len > std::size(pkt.data) ||
 			(4 + 4 + 2 + pkt.data_len) != cmd.DataLen2())
 			return false;
@@ -530,7 +530,8 @@ bool CanHackerBinary::canSend()
 			pkt.data[i] = cmd.Data2(10 + i);
 
 		// add checksum to data field
-		pkt.addChecksum(linSettings.extCrc);
+		if (pkt.data_len)
+			pkt.addChecksum(linSettings.extCrc);
 
 		if (linSettings.open)
 			linBus1.send(pkt);
@@ -549,11 +550,19 @@ bool CanHackerBinary::processPackets()
 	// 40 01 24 00  00 11  00 32 22 ea  00 00 00 f2  00 00 00 c4  04  55 15 ed ef
 
 	// new version
-	// 0  1  2  3   4  5   6  7  8  9   10 11 12 13  14 15 16 17  18 19 20 21  22 23  24 25 26 27 28 29 30 31   
-	// ch=2, flags(?)=10 time=535bd8, flags(?)=00, id=222, data=11..88
+	// 0  1  2  3   4  5   6  7  8  9   10 11 12 13  14 15 16 17  18 19 20 21  22 23  24 25 26 27 28 29 30 31
+	// ch=2, flags=1000'0000, time=00535bd8, chksum=00, id=222, data=11..88
 	// 40 01 00 40  1a 00  00 00 00 10  d8 5b 53 00  00 00 00 00  22 02 00 00  08 00  11 22 33 44 55 66 77 88
-	// FIXME ch=1, not working!!
-	// 40 98 00 20  1a 00  00 00 00 10  28 1b 19 03  00 00 00 00  23 01 00 00  08 00  11 22 33 44 55 66 77 88
+	// ch=1, flags=1000'0000, time=0103ac90, chksum=00, id=777, data=fffff
+	// 40 02 00 20  1a 00  00 00 00 10  90 ac 03 01  00 00 00 00  77 07 00 00  08 00  ff ff ff ff ff ff ff ff
+	// ch=2, flags=1000'0001, time=0069d9a8, chksum=00, id=1fff'ffff, data=ffffff
+	// 40 18 00 40  1a 00  01 00 00 10  a8 d9 69 00  00 00 00 00  ff ff ff 1f  08 00  ff ff ff ff ff ff ff ff
+	// lin normal, flags=0000'1000, time=00144f38, chksum=99, id=80, data=11..88
+	// 40 01 00 20  1a 00  00 10 00 00  38 4f 14 00  99 00 00 00  80 00 00 00  08 00  11 22 33 44 55 66 77 88
+	// lin extcrc, flags=0000'2000, time=024d8210, chksum=3f, id=80, data=40 00 00
+	// 40 01 00 20  15 00  00 20 00 00  10 82 4d 02  3f 00 00 00  80 00 00 00  03 00  40 00 00
+	// lin extcrc, flags=0000'2000, time=025215f0, chksum=e7, id=3c, data=20 ee ee ee ee ff ff 00
+	// 40 0f 00 20  1a 00  00 20 00 00  f0 15 52 02  e7 00 00 00  3c 00 00 00  08 00  20 ee ee ee ee ff ff 00
 
 
 	auto convertAndSend = [this](uint8_t channel, uint32_t flags, const auto &pkt, uint32_t linChksum=0)
@@ -571,7 +580,7 @@ bool CanHackerBinary::processPackets()
 
 		__UNALIGNED_UINT32_WRITE(tx + 6, flags);
 		__UNALIGNED_UINT32_WRITE(tx + 10, (pkt.timestamp % 60'000) * 1000);	// microseconds, max=59.9sec
-		__UNALIGNED_UINT32_WRITE(tx + 14, linChksum);	// ???
+		__UNALIGNED_UINT32_WRITE(tx + 14, linChksum);
 		__UNALIGNED_UINT32_WRITE(tx + 18, pkt.id);
 
 		__UNALIGNED_UINT16_WRITE(tx + 22, pkt.data_len);
@@ -608,7 +617,7 @@ bool CanHackerBinary::processPackets()
 		haveData = true;
 		auto pkt = linPkt.Get();
 
-		const uint32_t flags = 0; // TODO 0x04;	// Lin enhanced checksum ???
+		uint32_t flags = linSettings.extCrc ? 0x0000'2000 : 0x0000'1000;
 
 		uint8_t chksum = 0;
 		if (pkt.data_len)
