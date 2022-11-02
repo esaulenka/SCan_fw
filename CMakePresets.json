@@ -1,0 +1,61 @@
+{
+    "version": 3,
+    "configurePresets": [
+        {
+            "name": "default",
+            "generator": "Unix Makefiles",
+            "toolchainFile": "toolchain-arm-none-eabi.cmake",
+            "hidden": true
+        },
+        {
+            "name": "BoardSigma",
+            "inherits": "default",
+            "cacheVariables": {
+                "SCAN_BOARD": "BOARD_SIGMA",
+                "SCAN_BOOTLOADER": false
+            }
+        },
+        {
+            "name": "Board2CAN",
+            "inherits": "default",
+            "cacheVariables": {
+                "SCAN_BOARD": "BOARD_2CAN",
+                "SCAN_BOOTLOADER": false
+            }
+        },
+        {
+            "name": "BoardCSat",
+            "inherits": "default",
+            "cacheVariables": {
+                "SCAN_BOARD": "BOARD_CSAT",
+                "SCAN_BOOTLOADER": false
+            }
+        },
+        {
+            "name": "Board2CAN30",
+            "inherits": "default",
+            "cacheVariables": {
+                "SCAN_BOARD": "BOARD_2CAN30",
+                "SCAN_BOOTLOADER": false
+            }
+        },
+
+        {
+            "name": "BoardSigma-boot",
+            "inherits": "default",
+            "cacheVariables": {
+                "SCAN_BOARD": "BOARD_SIGMA",
+                "SCAN_BOOTLOADER": true
+            }
+        },
+        {
+            "name": "BoardCSat-boot",
+            "inherits": "default",
+            "cacheVariables": {
+                "SCAN_BOARD": "BOARD_CSAT",
+                "SCAN_BOOTLOADER": true
+            }
+        }
+
+    ] 
+}
