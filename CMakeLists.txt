@@ -35,7 +35,7 @@ set(SRC_COMMON
         Rtt/SEGGER_RTT_printf.c
 
         USB/usb_control.c
-        USB/usb_dwc_common.C
+        USB/usb_dwc_common.c
         USB/usb_f107.c
         USB/usb_standard.c
         USB/usb.c
