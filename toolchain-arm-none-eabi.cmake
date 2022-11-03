@@ -19,7 +19,12 @@ set(CMAKE_SYSTEM_PROCESSOR ARM)
 set(TOOLCHAIN arm-none-eabi)
 if(NOT DEFINED TOOLCHAIN_PREFIX)
     if(CMAKE_HOST_SYSTEM_NAME STREQUAL Linux)
-        set(TOOLCHAIN_PREFIX "/usr")
+        find_path(TOOLCHAIN_PREFIX_FULL 
+            NAMES "${TOOLCHAIN}-gcc"
+            PATHS "/usr/bin" "/usr/local/bin"
+        )
+        # remove '/bin'
+        get_filename_component(TOOLCHAIN_PREFIX "${TOOLCHAIN_PREFIX_FULL}/.." DIRECTORY)
     elseif(CMAKE_HOST_SYSTEM_NAME STREQUAL Darwin)
         set(TOOLCHAIN_PREFIX "/usr/local")
     elseif(CMAKE_HOST_SYSTEM_NAME STREQUAL Windows)
