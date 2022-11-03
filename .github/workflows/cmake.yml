@@ -44,5 +44,5 @@ jobs:
         configurePreset: ${{ matrix.cmake_presets }}
 
         # This is the name of the CMakePresets.json's configuration to build the project.
-        buildPreset: ${{ matrix.cmake_presets }}
+        # buildPreset: ${{ matrix.cmake_presets }}
       
