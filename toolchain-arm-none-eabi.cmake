@@ -24,7 +24,7 @@ if(NOT DEFINED TOOLCHAIN_PREFIX)
             PATHS "/usr/bin" "/usr/local/bin"
         )
         # remove '/bin'
-        get_filename_component(TOOLCHAIN_PREFIX "${TOOLCHAIN_PREFIX_FULL}/.." DIRECTORY)
+        file(REAL_PATH "${TOOLCHAIN_PREFIX_FULL}/.." TOOLCHAIN_PREFIX)
     elseif(CMAKE_HOST_SYSTEM_NAME STREQUAL Darwin)
         set(TOOLCHAIN_PREFIX "/usr/local")
     elseif(CMAKE_HOST_SYSTEM_NAME STREQUAL Windows)
