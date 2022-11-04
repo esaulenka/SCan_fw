@@ -28,7 +28,9 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - uses: carlosperate/arm-none-eabi-gcc-action@v1  # install latest gcc-arm-none-eabi
+
+    - name: Install latest gcc-arm-none-eabi
+      uses: carlosperate/arm-none-eabi-gcc-action@v1
 
     - name: Install python converter dependencies
       run: |
@@ -50,6 +52,4 @@ jobs:
 
         # This is the name of the CMakePresets.json's configuration to build the project.
         buildPreset: ${{ matrix.cmake_presets }}
-        # workaround: don't use preset name for building
-        buildPresetCmdString: "[`--build`, `.`]"
       

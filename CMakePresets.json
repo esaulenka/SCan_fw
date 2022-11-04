@@ -5,6 +5,7 @@
             "name": "default",
             "generator": "Unix Makefiles",
             "toolchainFile": "toolchain-arm-none-eabi.cmake",
+            "binaryDir": "${sourceDir}/build",
             "hidden": true
         },
         {
@@ -39,7 +40,6 @@
                 "SCAN_BOOTLOADER": false
             }
         },
-
         {
             "name": "BoardSigma-boot",
             "inherits": "default",
@@ -56,6 +56,13 @@
                 "SCAN_BOOTLOADER": true
             }
         }
-
-    ] 
+    ],
+    "buildPresets": [
+        {   "name": "BoardSigma",       "configurePreset": "${presetName}"  },
+        {   "name": "Board2CAN",        "configurePreset": "${presetName}"  },
+        {   "name": "BoardCSat",        "configurePreset": "${presetName}"  },
+        {   "name": "Board2CAN30",      "configurePreset": "${presetName}"  },
+        {   "name": "BoardSigma-boot",  "configurePreset": "${presetName}"  },
+        {   "name": "BoardCSat-boot",   "configurePreset": "${presetName}"  }
+    ]
 }
