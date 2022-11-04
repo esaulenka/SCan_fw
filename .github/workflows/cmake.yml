@@ -46,5 +46,5 @@ jobs:
         # This is the name of the CMakePresets.json's configuration to build the project.
         buildPreset: ${{ matrix.cmake_presets }}
         # workaround: don't use preset name for building
-        buildPresetCmdString: "[`--build`]"
+        buildPresetCmdString: "[`--build`, `.`]"
       
