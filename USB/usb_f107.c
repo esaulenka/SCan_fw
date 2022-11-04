@@ -53,10 +53,10 @@ static usbd_device *stm32f107_usbd_init(void)
 
 
 	// Wait for AHB idle.
-	while (!(USB_OTG_FS->GRSTCTL & USB_OTG_GRSTCTL_AHBIDL));
+	while (!(USB_OTG_FS->GRSTCTL & USB_OTG_GRSTCTL_AHBIDL)) {}
 	// Do core soft reset.
 	USB_OTG_FS->GRSTCTL |= USB_OTG_GRSTCTL_CSRST;
-	while (USB_OTG_FS->GRSTCTL & USB_OTG_GRSTCTL_CSRST);
+	while (USB_OTG_FS->GRSTCTL & USB_OTG_GRSTCTL_CSRST) {}
 
 //	if (USB_OTG_FS->CID >= OTG_CID_HAS_VBDEN) {
 //		// Enable VBUS detection in device mode and power up the PHY.

@@ -141,7 +141,7 @@ public:
 	enum { PAGE_COUNT = Stm32FlashProps<chip::type>::PAGE_COUNT };
 	enum { PAGE_SIZE = Stm32FlashProps<chip::type>::PAGE_SIZE };
 	enum { START_ADDRESS = 0x08000000UL };
-	enum { SIZE = PAGE_COUNT * PAGE_SIZE };
+	enum { SIZE = (uint32_t)PAGE_COUNT * (uint32_t)PAGE_SIZE };
 
 	struct Options
 	{
@@ -204,7 +204,7 @@ typedef Stm32Flash<> Flash;
 template<class props>
 void Stm32Flash<props>::Wait()
 {
-	while (Busy()) ;
+	while (Busy()) {}
 	__DSB();
 }
 
