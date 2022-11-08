@@ -52,4 +52,14 @@ jobs:
 
         # This is the name of the CMakePresets.json's configuration to build the project.
         buildPreset: ${{ matrix.cmake_presets }}
+
+    - name: Upload generated binaries
+      uses: actions/upload-artifact@v3
+      with: 
+        name: binaries
+        path: |
+          build/${{ matrix.cmake_presets }}.dfu
+          build/${{ matrix.cmake_presets }}.hex
+        if-no-files-found: ignore
+
       
