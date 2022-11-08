@@ -122,9 +122,13 @@ void CanHackerBinary::parse()
 		// >> 89 12 00 00
 		send(0x89);
 		break;
-	//case 0x0A:	// TODO get device load statistics
-		// << 0A 14 01 00
-		// >> ???
+	case 0x0A:		// TODO device load statistics
+		// << 0a 0d 01 00
+		// >> 8a 0d 00 00
+		// should send periodically (1 sec) packets
+		// 0a 01 00 5c <23 uints>
+		send(cmd.Command() | 0x80);
+		break;
 	case 0x0F:		// check license
 		checkLicense();
 		break;
@@ -187,11 +191,6 @@ void CanHackerBinary::parse()
 		// << 4b 09 60 00 - disable
 		// >> c9 09 00 00
 		send(cmd.Command() | 0x80);
-		break;
-	case 0x0a:		// session end? not used
-		// << 0a 11 00 00
-		// >> ff 11 00 00
-		send(0xff);
 		break;
 	default:
 		DBG("Unknown command %02X!\n", cmd.Command());
