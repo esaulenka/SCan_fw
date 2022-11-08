@@ -6,10 +6,13 @@
             "generator": "Unix Makefiles",
             "toolchainFile": "toolchain-arm-none-eabi.cmake",
             "binaryDir": "${sourceDir}/build",
+            "cacheVariables": {
+                "PRESET_NAME": "${presetName}"
+            },
             "hidden": true
         },
         {
-            "name": "BoardSigma",
+            "name": "SCan-Sigma",
             "inherits": "default",
             "cacheVariables": {
                 "SCAN_BOARD": "BOARD_SIGMA",
@@ -17,7 +20,7 @@
             }
         },
         {
-            "name": "Board2CAN",
+            "name": "SCan-2CAN",
             "inherits": "default",
             "cacheVariables": {
                 "SCAN_BOARD": "BOARD_2CAN",
@@ -25,7 +28,7 @@
             }
         },
         {
-            "name": "BoardCSat",
+            "name": "SCan-CSat",
             "inherits": "default",
             "cacheVariables": {
                 "SCAN_BOARD": "BOARD_CSAT",
@@ -33,7 +36,7 @@
             }
         },
         {
-            "name": "Board2CAN30",
+            "name": "SCan-2CAN30",
             "inherits": "default",
             "cacheVariables": {
                 "SCAN_BOARD": "BOARD_2CAN30",
@@ -41,7 +44,7 @@
             }
         },
         {
-            "name": "BoardSigma-boot",
+            "name": "SCanBoot-Sigma",
             "inherits": "default",
             "cacheVariables": {
                 "SCAN_BOARD": "BOARD_SIGMA",
@@ -49,7 +52,7 @@
             }
         },
         {
-            "name": "BoardCSat-boot",
+            "name": "SCanBoot-CSat",
             "inherits": "default",
             "cacheVariables": {
                 "SCAN_BOARD": "BOARD_CSAT",
@@ -58,11 +61,11 @@
         }
     ],
     "buildPresets": [
-        {   "name": "BoardSigma",       "configurePreset": "${presetName}"  },
-        {   "name": "Board2CAN",        "configurePreset": "${presetName}"  },
-        {   "name": "BoardCSat",        "configurePreset": "${presetName}"  },
-        {   "name": "Board2CAN30",      "configurePreset": "${presetName}"  },
-        {   "name": "BoardSigma-boot",  "configurePreset": "${presetName}"  },
-        {   "name": "BoardCSat-boot",   "configurePreset": "${presetName}"  }
+        {   "name": "SCan-Sigma",       "configurePreset": "SCan-Sigma"         },
+        {   "name": "SCan-2CAN",        "configurePreset": "SCan-2CAN"          },
+        {   "name": "SCan-CSat",        "configurePreset": "SCan-CSat"          },
+        {   "name": "SCan-2CAN30",      "configurePreset": "SCan-2CAN30"        },
+        {   "name": "SCanBoot-Sigma",   "configurePreset": "SCanBoot-Sigma"     },
+        {   "name": "SCanBoot-CSat",    "configurePreset": "SCanBoot-CSat"      }
     ]
 }

@@ -10,8 +10,6 @@ set(SCAN_BOARD "BOARD_SIGMA" CACHE STRING "Target hardware")
 # if(NOT DEFINED CMAKE_TOOLCHAIN_FILE)
 #   set(CMAKE_TOOLCHAIN_FILE "toolchain-arm-none-eabi.cmake" CACHE PATH "toolchain file")
 # endif()
-set(CMAKE_C_STANDARD 17)
-set(CMAKE_CXX_STANDARD 20)
 
 # force using Release build, if other is not specified
 if( x${CMAKE_BUILD_TYPE} STREQUAL x)
@@ -19,10 +17,12 @@ if( x${CMAKE_BUILD_TYPE} STREQUAL x)
 endif()
 
 # declare project itself
-if (NOT SCAN_BOOTLOADER)
-  project(SCan C CXX ASM)
+if (DEFINED CACHE{PRESET_NAME})
+  project(${PRESET_NAME})
+elseif (NOT SCAN_BOOTLOADER)
+  project(SCan)
 else()
-  project(SCan-boot C CXX ASM)
+  project(SCan-boot)
 endif()
 set(EXECUTABLE ${PROJECT_NAME}.elf)
 
@@ -68,6 +68,10 @@ set(INC_DIRECTORIES
         system/CMSIS
         USB
 )
+
+enable_language(C CXX ASM)
+set(CMAKE_C_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 
 if(NOT SCAN_BOOTLOADER)
     add_executable(${EXECUTABLE} ${SRC_COMMON} ${SRC_HACKER})

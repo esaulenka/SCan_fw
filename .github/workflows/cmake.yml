@@ -19,12 +19,12 @@ jobs:
     strategy:
       matrix:
         cmake_presets:
-          - "BoardSigma"
-          - "Board2CAN"
-          - "BoardCSat"
-          - "Board2CAN30"
-          - "BoardSigma-boot"
-          - "BoardCSat-boot"
+          - "SCan-Sigma"
+          - "SCan-2CAN"
+          - "SCan-CSat"
+          - "SCan-2CAN30"
+          - "SCanBoot-Sigma"
+          - "SCanBoot-CSat"
 
     steps:
     - uses: actions/checkout@v3
