@@ -72,6 +72,7 @@ private:
 	struct LinSettings {
 		bool open = false;
 		uint32_t baudrate = 0;
+		uint32_t interbyteDelay = 0;
 		bool extCrc = false;
 	} linSettings;
 

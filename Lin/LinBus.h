@@ -18,7 +18,7 @@ public:
 		driver(linDrv)
 	{}
 
-	bool init(uint32_t baudrate);
+	bool init(uint32_t baudrate, uint32_t interbyteDelay);
 	bool deinit();
 
 	bool send(const Lin::Pkt &pkt);

@@ -9,8 +9,8 @@
 #include <array>
 
 
-static const uint8_t deviceType[] = "CH-3.2";		// cmd 0x01
-static const uint8_t softVersion[] = "2.1.0.7";		// cmd 0x02
+static const uint8_t deviceInfo[] = "CH-3.2";			// cmd 0x01
+static const uint8_t deviceFirmware[] = "2.1.1.9";		// cmd 0x02
 static const uint8_t deviceSerial[8] = { 0,0,0,0,0,0,0x08,0x05 };
 
 
@@ -86,17 +86,17 @@ void CanHackerBinary::parse()
 		linSettings = LinSettings();
 		send(0x5a, 0x5a, nullptr, 0);
 		break;
-	case 0x01:		// get hardware code
+	case 0x01:		// get device info
 		// << 01 01 00 00
 		// >> 01 01 00 04 43 48 33 32
-		send(0x01, 0, deviceType, sizeof(deviceType)-1);
+		send(0x01, 0, deviceInfo, sizeof(deviceInfo)-1);
 		break;
-	case 0x02:	  	// get firmware version
+	case 0x02:	  	// get device firmware
 		// << 02 02 00 00
 		// >> 02 02 00 06 30 2e 31 2e 31 31
-		send(0x02, 0, softVersion, sizeof(softVersion)-1);
+		send(0x02, 0, deviceFirmware, sizeof(deviceFirmware)-1);
 		break;
-	case 0x03:		// get serial number
+	case 0x03:		// get device serial number
 	{	// << 03 04 00 00
 		// >> 03 04 00 08 00 00 00 00 00 00 08 05
 		send(0x03, 0, deviceSerial, sizeof(deviceSerial));
@@ -105,10 +105,10 @@ void CanHackerBinary::parse()
 	case 0x04:		// set device mode: 0 - 2CAN+Lin, 1 - 2CAN, 2 - LIN
 		setMode();
 		break;
-	case 0x05:		// get hardware index (??)
+	case 0x05:		// get device hardware
 	{	// << 05 01 00 00
 		// >> 05 01 00 01 11
-		uint8_t tmp = 0x11;
+		uint8_t tmp = 0x11;		// CanHacker 3.3 on F407 (dual CAN + single LIN)
 		send(0x05, 0, &tmp, sizeof(tmp));
 		break;
 	}
@@ -195,6 +195,25 @@ void CanHackerBinary::parse()
 	default:
 		DBG("Unknown command %02X!\n", cmd.Command());
 		break;
+
+	//0x48: 	// TODO bus error
+	// #define ERROR_CAN_STUFF 0x00000001U
+	// #define ERROR_CAN_FORMAT 0x00000002U
+	// #define ERROR_LIN_FRAME 0x00000002U
+	// #define ERROR_CAN_ACK 0x00000004U
+	// #define ERROR_CAN_CRC 0x00000008U
+	// #define ERROR_CAN_TRANSMIT1 0x00000010U
+	// #define ERROR_CAN_TRANSMIT0 0x00000020U
+	// #define ERROR_BUS_OFF 0x00000040U
+	// #define ERROR_PASSIVE 0x00000080U
+	// #define ERROR_WARNING 0x00000100U
+	// #define ERROR_OVERFLOW 0x00000200U
+	// #define ERROR_DATA_STUFF 0x00010000U
+	// #define ERROR_DATA_FORMAT 0x00020000U
+	// #define ERROR_DATA_ACK 0x00040000U
+	// #define ERROR_DATA_CRC 0x00080000U
+	// #define ERROR_DATA_TRANSMIT1 0x00100000U
+	// #define ERROR_DATA_TRANSMIT0 0x00200000U	
 	}
 }
 
@@ -308,12 +327,17 @@ bool CanHackerBinary::canSetup()
 		// 01 - crc, 02 - ecrc
 		linSettings.extCrc = cmd.Data1(0) == 0x02;
 		break;
-	case 0x8:		// set syncronization jump width. not used
-		// SJW = cmd.Data(0) + 1;
+	case 0x8:		// LIN idle delay (max delay between bytes)
+		static const uint16_t lin_interbyte_delay[] = {		// in micro seconds
+			0, 100, 200, 250, 500, 750, 1000, 1500, 2000,
+		};
+		if (lin && cmd.Data1(0) < std::size(lin_interbyte_delay)) {
+			linSettings.interbyteDelay = lin_interbyte_delay[cmd.Data1(0)];
+		}
 		break;
-	case 0x9:		// CAN listen mode
-		if (ch1) canSettings[0].silent = cmd.Data1(0);
-		if (ch2) canSettings[1].silent = cmd.Data1(0);
+	case 0x9:		// CAN listen mode. 0 - normal, 1 - listen, 2 - loopback
+		if (ch1) canSettings[0].silent = (cmd.Data1(0) == 1);
+		if (ch2) canSettings[1].silent = (cmd.Data1(0) == 1);
 		break;
 	//case 0xA:		// Frame format
 	default: return false;
@@ -340,7 +364,7 @@ bool CanHackerBinary::canOpen()
 	if (ch2) open(Can::CANch2, canSettings[1]);
 	if (lin)
 	{
-		linBus1.init(linSettings.baudrate);
+		linBus1.init(linSettings.baudrate, linSettings.interbyteDelay);
 		linSettings.open = true;
 	}
 
@@ -496,7 +520,10 @@ bool CanHackerBinary::canSend()
 
 	if (ch1 || ch2)
 	{
-		//const uint32_t flags = cmd.Data2dw(0);	// ExtId=0x01; rtr=0x02
+		// ExtId = 0x01; rtr = 0x02; CAN-FD = 0x04; CAN-FD rate switch = 0x08; CAN-FD error status = 0x10; Block TX = 0x30000000
+		//const uint32_t flags = cmd.Data2dw(0);
+		// what it means? "Следует учесть, что если для CAN шины в message.flags не выставить флаг FLAG_MESSAGE_BLOCK_TX, то устройство
+		// после отправки сообщения в шину вернёт его с соответствующим флагом."
 		Can::Pkt pkt;
 		pkt.id = cmd.Data2dw(1);
 
@@ -563,6 +590,10 @@ bool CanHackerBinary::processPackets()
 	// lin extcrc, flags=0000'2000, time=025215f0, chksum=e7, id=3c, data=20 ee ee ee ee ff ff 00
 	// 40 0f 00 20  1a 00  00 20 00 00  f0 15 52 02  e7 00 00 00  3c 00 00 00  08 00  20 ee ee ee ee ff ff 00
 
+	// Flags: bit0 - extId, bit1 - RTR, bit2 - CAN-FD, bit3 - CAN-FD switch rate, bit4 - CAN-FD error status
+	// bit8 - LIN master req, bit9 - LIN slave response, bit12 - LIN classic CRC, bit13 - LIN extCRC
+	// bit24 - error frame, bit28 - rx (?), bit29 - tx (?)
+
 
 	auto convertAndSend = [this](uint8_t channel, uint32_t flags, const auto &pkt, uint32_t linChksum=0)
 	{
@@ -606,7 +637,7 @@ bool CanHackerBinary::processPackets()
 			uint8_t channel = ((ch == 0) ? cmd.maskCh1 : cmd.maskCh2);
 
 			bool extId = pkt.id > 0x7ff;
-			uint32_t flags = 0x1000'0000 | (extId ? 0x01 : 0x00);	// ??? flags
+			uint32_t flags = 0x1000'0000 | (extId ? 0x01 : 0x00);
 
 			convertAndSend(channel, flags, pkt);
 		}
@@ -616,7 +647,7 @@ bool CanHackerBinary::processPackets()
 		haveData = true;
 		auto pkt = linPkt.Get();
 
-		uint32_t flags = linSettings.extCrc ? 0x0000'2000 : 0x0000'1000;
+		uint32_t flags = 0x1000'0000 | (linSettings.extCrc ? 0x0000'2000 : 0x0000'1000);
 
 		uint8_t chksum = 0;
 		if (pkt.data_len)

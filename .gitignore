@@ -1,3 +1,6 @@
 # Qt local file
 *.qbs.user
 *.qbs.user.*
+
+# CMake files
+build/

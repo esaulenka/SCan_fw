@@ -12,7 +12,7 @@ extern LinDrv lin1drv, lin2drv;
 LinBus linBus1(lin1drv);
 LinBus linBus2(lin2drv);
 
-bool LinBus::init(uint32_t baudrate)
+bool LinBus::init(uint32_t baudrate, uint32_t interByteDelay)
 {
 	LinDrv::LinInit params = {
 		.baudrate = baudrate,
@@ -24,10 +24,7 @@ bool LinBus::init(uint32_t baudrate)
 
 	driver.sleep(false);
 
-
-	uint32_t bitLength = 1'000'000 / baudrate;	// in microseconds
-	uint32_t interByteSpace = bitLength * 50;	// 5 bytes
-	rxTimeout = (interByteSpace + 999) / 1000;	// in milliseconds
+	rxTimeout = (interByteDelay + 999) / 1000;	// in milliseconds
 
 	return true;
 }
