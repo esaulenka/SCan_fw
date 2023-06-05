@@ -58,12 +58,12 @@ class LinBus
 public:
 	LinBus() {}
 
-	bool init(uint32_t)			{ return true; }
-	bool deinit()				{ return true; }
+	bool init(uint32_t, uint32_t)	{ return true; }
+	bool deinit()					{ return true; }
 
-	bool send(const Lin::Pkt &)	{ return true; }
+	bool send(const Lin::Pkt &)		{ return true; }
 
-	void checkTimeout()			{}
+	void checkTimeout()				{}
 };
 #endif
 
