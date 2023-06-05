@@ -104,7 +104,8 @@ void LinBus::rxComplete()
 
 void LinBus::checkTimeout()
 {
-	if (rxBuf.state != LinBuf::Idle &&
+	if (rxTimeout &&
+		rxBuf.state != LinBuf::Idle &&
 		rxBuf.rxTimer.checkTimeout(rxTimeout))
 	{
 		rxComplete();
