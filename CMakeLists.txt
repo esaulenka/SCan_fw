@@ -87,6 +87,7 @@ target_compile_definitions(${EXECUTABLE} PRIVATE
         BOARD_2CAN=2            # Ancient 2CAN board
         BOARD_CSAT=3            # Custom CS device
         BOARD_2CAN30=4          # 2CAN 30 module
+        BOARD_2CAN2LIN=5        # 2CAN-2LIN board
 
         PROTOCOL_LAWICEL=1      # commonly used, ascii-based
         PROTOCOL_BINARY=2       # "new" canhacker protocol

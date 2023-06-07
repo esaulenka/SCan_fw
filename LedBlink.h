@@ -4,6 +4,9 @@
 #include "Pins.h"
 #include "SysClock.h"
 
+// Creates a short pulse on LED outupts to indicate data rx/tx events
+// Uses TIM3, channels 1, 2
+
 class LedBlink {
 using Tmr = STM32::TIM::Timer<STM32::TIM::TIM_3>;
 
@@ -11,11 +14,9 @@ public:
 
 static void init()
 {
-#if BOARD == BOARD_CSAT
+#if BOARD == BOARD_CSAT || BOARD == BOARD_2CAN2LIN
 	PinLedTx::Mode(ALT_OUTPUT);		// ch1
 	PinLedRx::Mode(ALT_OUTPUT);		// ch2
-	static_assert (PinLedTx::port_no == 0); static_assert(PinLedTx::pin == 6);
-	static_assert (PinLedRx::port_no == 0); static_assert(PinLedRx::pin == 7);
 
 	Tmr::EnableClocks();
 
@@ -58,7 +59,7 @@ template <class Channel>
 static void runChannel(uint16_t timeout)
 {
 	(void)timeout;
-#if BOARD == BOARD_CSAT
+#if BOARD == BOARD_CSAT || BOARD == BOARD_2CAN2LIN
 	// force active
 	Channel::CCMRx = (Channel::CCMRx & ~Channel::CCMR_OCM)
 			| Channel::CCMR_OCM_FORCE_ON;

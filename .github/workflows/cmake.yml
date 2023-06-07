@@ -23,8 +23,10 @@ jobs:
           - "SCan-2CAN"
           - "SCan-CSat"
           - "SCan-2CAN30"
+          - "SCan-2CAN2LIN"
           - "SCanBoot-Sigma"
           - "SCanBoot-CSat"
+          - "SCanBoot-2CAN2LIN"
 
     steps:
     - uses: actions/checkout@v3

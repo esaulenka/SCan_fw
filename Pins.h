@@ -70,6 +70,8 @@ using PinLin2Tx		= Pin<'B',10>;	// USART3
 using PinLin2Rx		= Pin<'B',11>;
 using PinLin2Slp	= Pin<'D',2>;
 using PinLinBreak	= Pin<'B',6>;	// high to break link
+using PinLin1Pullup = DummyPin<>;
+using PinLin2Pullup = DummyPin<>;
 
 
 // External flash
@@ -152,6 +154,8 @@ using PinLin1Slp	= Pin<'A',4>;
 using PinLin2Tx		= Pin<'B',10>;	// USART3
 using PinLin2Rx		= Pin<'B',11>;
 using PinLin2Slp	= Pin<'A',5>;
+using PinLin1Pullup = DummyPin<>;
+using PinLin2Pullup = DummyPin<>;
 
 // Misc
 using PinButton		= Pin<'A',0, 'L'>;	// active low
@@ -197,6 +201,60 @@ inline void initRemap()
 	AFIO->MAPR =
 			AFIO_MAPR_SWJ_CFG_0 * 2 |
 			AFIO_MAPR_CAN_REMAP_0*2;
+}
+
+#elif BOARD == BOARD_2CAN2LIN			// 2CAN-2LIN board
+
+// USB
+using PinUsbDP		= Pin<'A',12>;
+using PinUsbDM		= Pin<'A',11>;
+using PinUsbVbus	= Pin<'A',9>;
+// real USB connection status
+using PinUsbConnect	= Pin<'B',3>;
+
+// Misc
+using PinButton		= Pin<'B',10, 'L'>;	// active low
+using PinLedTx		= Pin<'C',6>;	// TIM3 ch1 remapped
+using PinLedRx		= Pin<'C',7>;	// TIM3 ch2
+
+// CAN-bus
+using PinCan1Rx		= Pin<'B',8>;	// remapped!
+using PinCan1Tx		= Pin<'B',9>;
+using PinCan1Stdby	= Pin<'B',7>;
+using PinCan2Rx		= Pin<'B',5>;	// remapped!
+using PinCan2Tx		= Pin<'B',6>;
+using PinCan2Stdby	= Pin<'B',14>;
+
+// LIN
+using PinLin1Tx		= Pin<'A',2>;	// USART2
+using PinLin1Rx		= Pin<'A',3>;
+using PinLin1Slp	= Pin<'C',5>;
+using PinLin2Tx		= Pin<'C',10>;	// USART3 remapped
+using PinLin2Rx		= Pin<'C',11>;
+using PinLin2Slp	= Pin<'B',1>;
+using PinLinBreak	= Pin<'A',0>;	// high to break link
+using PinLin1Pullup = Pin<'C',4>;
+using PinLin2Pullup = Pin<'B',0>;
+
+// External flash
+// SPI1
+using PinFlashCS	= Pin<'A',4>;
+using PinFlashSCK	= Pin<'A',5>;
+using PinFlashMISO	= Pin<'A',6>;
+using PinFlashMOSI	= Pin<'A',7>;
+
+
+inline void initRemap()
+{
+	// use only SWD (not JTAG)
+	// remap CAN1, CAN2, USART3, TIM3
+	AFIO->MAPR =
+			AFIO_MAPR_SWJ_CFG_0 * 2 |
+			AFIO_MAPR_CAN_REMAP_0 * 2 |
+			AFIO_MAPR_CAN2_REMAP |
+			AFIO_MAPR_USART3_REMAP_0 * 1 |
+			AFIO_MAPR_TIM3_REMAP_0 * 3
+			;
 }
 
 #else

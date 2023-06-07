@@ -44,6 +44,14 @@
             }
         },
         {
+            "name": "SCan-2CAN2LIN",
+            "inherits": "default",
+            "cacheVariables": {
+                "SCAN_BOARD": "BOARD_2CAN2LIN",
+                "SCAN_BOOTLOADER": false
+            }
+        },
+        {
             "name": "SCanBoot-Sigma",
             "inherits": "default",
             "cacheVariables": {
@@ -58,6 +66,14 @@
                 "SCAN_BOARD": "BOARD_CSAT",
                 "SCAN_BOOTLOADER": true
             }
+        },
+        {
+            "name": "SCanBoot-2CAN2LIN",
+            "inherits": "default",
+            "cacheVariables": {
+                "SCAN_BOARD": "BOARD_2CAN2LIN",
+                "SCAN_BOOTLOADER": true
+            }
         }
     ],
     "buildPresets": [
@@ -65,7 +81,9 @@
         {   "name": "SCan-2CAN",        "configurePreset": "SCan-2CAN"          },
         {   "name": "SCan-CSat",        "configurePreset": "SCan-CSat"          },
         {   "name": "SCan-2CAN30",      "configurePreset": "SCan-2CAN30"        },
+        {   "name": "SCan-2CAN2LIN",    "configurePreset": "SCan-2CAN2LIN"      },
         {   "name": "SCanBoot-Sigma",   "configurePreset": "SCanBoot-Sigma"     },
-        {   "name": "SCanBoot-CSat",    "configurePreset": "SCanBoot-CSat"      }
+        {   "name": "SCanBoot-CSat",    "configurePreset": "SCanBoot-CSat"      },
+        {   "name": "SCanBoot-2CAN2LIN","configurePreset": "SCanBoot-2CAN2LIN"  }
     ]
 }
