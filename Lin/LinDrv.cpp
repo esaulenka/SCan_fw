@@ -18,6 +18,8 @@ static const LinProperties lin1prop = {
 		PinLin1Tx::Mode(ALT_OUTPUT_2MHZ);
 		PinLin1Slp::On();
 		PinLin1Slp::Mode(OUTPUT_2MHZ);
+		PinLin1Pullup::On();
+		PinLin1Pullup::Mode(OUTPUT_2MHZ);
 	},
 	.enableDriver = [](bool enable) {
 		PinLin1Slp::On(enable);
@@ -36,6 +38,8 @@ static const LinProperties lin2prop = {
 		PinLin2Tx::Mode(ALT_OUTPUT_2MHZ);
 		PinLin2Slp::On();
 		PinLin2Slp::Mode(OUTPUT_2MHZ);
+		PinLin2Pullup::On();
+		PinLin2Pullup::Mode(OUTPUT_2MHZ);
 	},
 	.enableDriver = [](bool enable) {
 		PinLin2Slp::On(enable);
