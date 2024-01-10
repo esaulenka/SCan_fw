@@ -220,10 +220,10 @@ using PinLedRx		= Pin<'C',7>;	// TIM3 ch2
 // CAN-bus
 using PinCan1Rx		= Pin<'B',8>;	// remapped!
 using PinCan1Tx		= Pin<'B',9>;
-using PinCan1Stdby	= Pin<'B',7>;
+using PinCan1Stdby	= Pin<'B',7, 'L'>;
 using PinCan2Rx		= Pin<'B',5>;	// remapped!
 using PinCan2Tx		= Pin<'B',6>;
-using PinCan2Stdby	= Pin<'B',14>;
+using PinCan2Stdby	= Pin<'B',14, 'L'>;
 
 // LIN
 using PinLin1Tx		= Pin<'A',2>;	// USART2
