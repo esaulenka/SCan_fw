@@ -56,9 +56,9 @@ jobs:
         buildPreset: ${{ matrix.cmake_presets }}
 
     - name: Upload generated binaries
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with: 
-        name: binaries
+        name: binaries-${{ matrix.cmake_presets }}
         path: |
           build/${{ matrix.cmake_presets }}.dfu
           build/${{ matrix.cmake_presets }}.hex
