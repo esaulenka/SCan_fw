@@ -26,5 +26,16 @@ public:
 				sum += data[i];
 			data[data_len++] = ~(sum % 255);
 		}
+		void setProtId(uint8_t unprotId)
+		{
+			// P1 = ~(ID1 ^       ID3 ^ ID4 ^ ID5)
+			// P0 =   ID0 ^ ID1 ^ ID2 ^       ID4
+			uint8_t b10 = (unprotId << 6);
+			uint8_t b_1 = (unprotId << 5);
+			uint8_t b32 = (unprotId << 4);
+			uint8_t b4_ = (unprotId << 3);
+			uint8_t b54 = (unprotId << 2);
+			id = (unprotId & 0x3F) ^ 0x80 ^ ((b54 ^ b32 ^ b10) & 0xC0) ^ (b_1 & 0x40) ^ (b4_ & 0x80);
+		}
 	};
 };
